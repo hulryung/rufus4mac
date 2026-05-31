@@ -11,7 +11,15 @@ targets:
   RufusApp:
     type: application
     platform: macOS
-    sources: [App]
+    sources:
+      - path: App
+      - path: Helper
+        includes:
+          - "com.huconn.rufus4mac.helper.plist"
+        buildPhase:
+          copyFiles:
+            destination: wrapper
+            subpath: Contents/Library/LaunchDaemons
     dependencies:
       - package: RufusPkg
         product: DiskDiscovery
@@ -19,6 +27,10 @@ targets:
         product: XPCProtocol
       - package: RufusPkg
         product: RufusCore
+      - target: RufusHelper
+        embed: true
+        copy:
+          destination: executables
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.huconn.rufus4mac
@@ -31,7 +43,10 @@ targets:
   RufusHelper:
     type: tool
     platform: macOS
-    sources: [Helper]
+    sources:
+      - path: Helper
+        excludes:
+          - "com.huconn.rufus4mac.helper.plist"
     dependencies:
       - package: RufusPkg
         product: RufusCore

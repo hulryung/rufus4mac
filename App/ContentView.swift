@@ -82,6 +82,17 @@ struct ContentView: View {
     private func startWrite() {
         guard let url = image.imageURL, let disk = diskVM.selected,
               let hash = image.sha256Base64 else { return }
+        do {
+            guard try HelperInstaller.ensureInstalled() else {
+                writer.errorText = "Approve the helper in System Settings > Login Items, then try again."
+                writer.finished = true
+                return
+            }
+        } catch {
+            writer.errorText = "Helper install failed: \(error)"
+            writer.finished = true
+            return
+        }
         writer.startWrite(imagePath: url.path, bsdName: disk.bsdName,
                           expectedSHA256Base64: hash)
     }
