@@ -19,7 +19,11 @@ final class WriteClient: NSObject, ObservableObject, WriteProgressObserver {
         c.exportedInterface = NSXPCInterface(with: WriteProgressObserver.self)
         c.exportedObject = self
         c.invalidationHandler = { [weak self] in
-            Task { @MainActor in self?.errorText = self?.errorText ?? "helper connection lost" }
+            Task { @MainActor in
+                self?.connection = nil
+                if self?.errorText == nil { self?.errorText = "helper connection lost" }
+                self?.finished = true
+            }
         }
         c.resume()
         connection = c
@@ -30,7 +34,10 @@ final class WriteClient: NSObject, ObservableObject, WriteProgressObserver {
         let proxy = connect().remoteObjectProxyWithErrorHandler { [weak self] err in
             // Pre-stringify err (non-Sendable) before crossing to @MainActor Task.
             let msg = "\(err)"
-            Task { @MainActor in self?.errorText = msg }
+            Task { @MainActor in
+                self?.errorText = msg
+                self?.finished = true
+            }
         } as? WriteServiceProtocol
         proxy?.write(imagePath: imagePath, bsdName: bsdName,
                      expectedSHA256: expectedSHA256Base64) { [weak self] errorDescription in

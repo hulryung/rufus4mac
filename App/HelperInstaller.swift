@@ -19,6 +19,9 @@ enum HelperInstaller {
             return false
         default:
             try service.register()
+            if service.status == .requiresApproval {
+                SMAppService.openSystemSettingsLoginItems()
+            }
             return service.status == .enabled
         }
     }
