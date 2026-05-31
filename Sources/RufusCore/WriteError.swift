@@ -6,4 +6,6 @@ public enum WriteError: Error, Equatable {
     case shortWrite(expected: Int, actual: Int)
     case verificationMismatch
     case cancelled
+    case targetNotRemovable(bsdName: String)
+    case invalidExpectedHash
 }
