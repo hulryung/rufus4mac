@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		336822C5D4BC5FC506FF482D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9283A090DED74921A5C9759 /* ContentView.swift */; };
 		469105559BDA0FB7DE47556F /* DiskDiscovery in Frameworks */ = {isa = PBXBuildFile; productRef = F1DF6BAD588B99D94F11D710 /* DiskDiscovery */; };
+		52E1CF4C9C2DB7B3A2F11068 /* WriteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FCB8BC3DFC9FE7841E2510E /* WriteService.swift */; };
 		5603028425CC2DC993702258 /* XPCProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = 694E78800B9A8A7BB17C3B32 /* XPCProtocol */; };
 		77E06CA720367CAE36459F3A /* DiskDiscovery in Frameworks */ = {isa = PBXBuildFile; productRef = E37CFE9D0E3F7155A66C3947 /* DiskDiscovery */; };
 		C93D97A90FFDB963C6CC4236 /* XPCProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = F1DD058F630347D66B95ECF7 /* XPCProtocol */; };
@@ -20,6 +21,7 @@
 /* Begin PBXFileReference section */
 		11E5360FC33FD711D5830519 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		159736C417976813F7440314 /* rufus4mac */ = {isa = PBXFileReference; lastKnownFileType = folder; name = rufus4mac; path = .; sourceTree = SOURCE_ROOT; };
+		5FCB8BC3DFC9FE7841E2510E /* WriteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WriteService.swift; sourceTree = "<group>"; };
 		B626F1A0FD6D5F0222CD54DF /* RufusHelper */ = {isa = PBXFileReference; includeInIndex = 0; path = RufusHelper; sourceTree = BUILT_PRODUCTS_DIR; };
 		C5C265CB1D95590D9762302B /* RufusApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RufusApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9283A090DED74921A5C9759 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -70,6 +72,7 @@
 			isa = PBXGroup;
 			children = (
 				11E5360FC33FD711D5830519 /* main.swift */,
+				5FCB8BC3DFC9FE7841E2510E /* WriteService.swift */,
 			);
 			path = Helper;
 			sourceTree = "<group>";
@@ -185,6 +188,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				52E1CF4C9C2DB7B3A2F11068 /* WriteService.swift in Sources */,
 				DCBB4745CB231A72CC42F1EC /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
