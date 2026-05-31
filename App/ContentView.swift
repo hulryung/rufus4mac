@@ -35,6 +35,11 @@ struct ContentView: View {
                 }
             }
 
+            if let disk = diskVM.selected, image.imageSize > 0, !image.fits(disk: disk) {
+                Label("Image is larger than the selected disk.", systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+            }
+
             if writer.phase.isEmpty == false || writer.finished {
                 ProgressView(value: writer.fraction) {
                     Text(writer.finished
@@ -44,7 +49,8 @@ struct ContentView: View {
             }
 
             Button("Write") { showConfirm = true }
-                .disabled(image.imageURL == nil || diskVM.selected == nil)
+                .disabled(image.imageURL == nil || diskVM.selected == nil || image.sha256Base64 == nil
+                          || (diskVM.selected.map { !image.fits(disk: $0) } ?? true))
                 .keyboardShortcut(.defaultAction)
 
             Spacer()

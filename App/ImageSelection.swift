@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import RufusCore
+import DiskDiscovery
 
 @MainActor
 final class ImageSelection: ObservableObject {
@@ -8,6 +9,8 @@ final class ImageSelection: ObservableObject {
     @Published var imageSize: UInt64 = 0
     @Published var sha256Base64: String?
     @Published var hashing = false
+
+    func fits(disk: DiskInfo) -> Bool { imageSize > 0 && imageSize <= disk.sizeBytes }
 
     func select(url: URL) {
         imageURL = url
