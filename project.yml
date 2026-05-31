@@ -17,6 +17,8 @@ targets:
         product: DiskDiscovery
       - package: RufusPkg
         product: XPCProtocol
+      - package: RufusPkg
+        product: RufusCore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.huconn.rufus4mac
