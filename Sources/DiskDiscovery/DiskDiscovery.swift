@@ -57,3 +57,55 @@ public enum DiskDiscovery {
             .takeRetainedValue()) as? Bool
     }
 }
+
+// MARK: - Unmount
+
+public enum UnmountError: Error { case sessionFailed, diskFailed, unmountFailed(String) }
+
+extension DiskDiscovery {
+    /// Unmount all volumes on the whole disk identified by `bsdName`.
+    /// Blocks until the operation completes (or fails). Safe to call when nothing
+    /// is mounted (returns immediately/succeeds).
+    public static func unmountDisk(bsdName: String, timeout: TimeInterval = 30) throws {
+        guard let session = DASessionCreate(kCFAllocatorDefault) else { throw UnmountError.sessionFailed }
+        let queue = DispatchQueue(label: "rufus4mac.unmount")
+        DASessionSetDispatchQueue(session, queue)
+        defer { DASessionSetDispatchQueue(session, nil) }
+
+        guard let disk = DADiskCreateFromBSDName(kCFAllocatorDefault, session, bsdName) else {
+            throw UnmountError.diskFailed
+        }
+
+        let box = UnmountBox()
+        let ctx = Unmanaged.passUnretained(box).toOpaque()
+
+        DADiskUnmount(disk, DADiskUnmountOptions(kDADiskUnmountOptionWhole), unmountCallback, ctx)
+
+        if box.sema.wait(timeout: .now() + timeout) == .timedOut {
+            throw UnmountError.unmountFailed("timed out")
+        }
+        if let failure = box.failureMessage { throw UnmountError.unmountFailed(failure) }
+    }
+}
+
+private func unmountCallback(
+    _ disk: DADisk?,
+    _ dissenter: DADissenter?,
+    _ context: UnsafeMutableRawPointer?
+) {
+    let box = Unmanaged<UnmountBox>.fromOpaque(context!).takeUnretainedValue()
+    if let dissenter {
+        let status = DADissenterGetStatus(dissenter)
+        box.failureMessage = "unmount dissented (status \(status))"
+    }
+    box.sema.signal()
+}
+
+// Class-based box avoids Swift 6 strict-concurrency issues with mutable captures:
+// writes happen on the DA dispatch queue; reads happen after the semaphore signals
+// (happens-before), so no data race. Using a final class (reference type) lets the
+// C context pointer simply borrow the object without a manual allocate/deallocate.
+private final class UnmountBox {
+    let sema = DispatchSemaphore(value: 0)
+    var failureMessage: String?
+}
