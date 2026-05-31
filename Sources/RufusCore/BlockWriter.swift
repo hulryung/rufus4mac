@@ -32,6 +32,7 @@ public final class FileBlockWriter: BlockWriter {
 /// (`/dev/rdiskN`). Writes must be sector-aligned by the caller (WriteEngine).
 public final class DeviceBlockWriter: BlockWriter {
     private let fd: Int32
+    private var closed = false
 
     /// Open the device for writing. `O_SYNC` ensures data hits the medium.
     public init(devicePath: String) throws {
@@ -55,6 +56,8 @@ public final class DeviceBlockWriter: BlockWriter {
     }
 
     public func finish() throws {
+        guard !closed else { return }
+        closed = true
         if fsync(fd) != 0 {
             let e = errno
             close(fd)

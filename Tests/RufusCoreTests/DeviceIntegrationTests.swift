@@ -25,6 +25,7 @@ final class DeviceIntegrationTests: XCTestCase {
         let source = try FileImageSource(url: imageURL)
         defer { source.close() }
         let writer = try DeviceBlockWriter(devicePath: device.bsdRawPath)
+        defer { try? writer.finish() }
         try engine.write(source: source, to: writer, isCancelled: { false }, progress: { _ in })
 
         // Verify by reading back from the raw device.
