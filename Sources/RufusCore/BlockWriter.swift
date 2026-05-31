@@ -10,8 +10,10 @@ public protocol BlockWriter: AnyObject {
 
 /// A `BlockWriter` backed by a regular file (used in unit tests and for
 /// developing the streaming logic without a device).
-public final class FileBlockWriter: BlockWriter {
+/// Single-task ownership; not safe for concurrent use.
+public final class FileBlockWriter: BlockWriter, @unchecked Sendable {
     private let handle: FileHandle
+    private var closed = false
 
     public init(url: URL) throws {
         FileManager.default.createFile(atPath: url.path, contents: nil)
@@ -23,6 +25,8 @@ public final class FileBlockWriter: BlockWriter {
     }
 
     public func finish() throws {
+        guard !closed else { return }
+        closed = true
         try handle.synchronize()
         try handle.close()
     }
@@ -30,7 +34,8 @@ public final class FileBlockWriter: BlockWriter {
 
 /// A `BlockWriter` backed by a POSIX file descriptor opened on a device
 /// (`/dev/rdiskN`). Writes must be sector-aligned by the caller (WriteEngine).
-public final class DeviceBlockWriter: BlockWriter {
+/// Single-task ownership; not safe for concurrent use.
+public final class DeviceBlockWriter: BlockWriter, @unchecked Sendable {
     private let fd: Int32
     private var closed = false
 
@@ -65,4 +70,6 @@ public final class DeviceBlockWriter: BlockWriter {
         }
         close(fd)
     }
+
+    deinit { if !closed { close(fd) } }
 }

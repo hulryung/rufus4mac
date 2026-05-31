@@ -4,7 +4,7 @@ import CryptoKit
 /// Streams an image to a block destination in sector-aligned chunks,
 /// padding the final partial sector with zeros (required by raw devices),
 /// reporting progress, and honoring cancellation.
-public final class WriteEngine {
+public final class WriteEngine: Sendable {
     private let chunkSize: Int
     private let sectorSize: Int
 
@@ -86,10 +86,11 @@ public final class WriteEngine {
 
         while remaining > 0 {
             if isCancelled() { throw WriteError.cancelled }
-            let want = Int(min(UInt64(chunkSize), remaining))
+            // Raw devices require sector-aligned reads. Round the final read up to a
+            // whole sector, then trim the result back to the image boundary below.
+            let want = remaining >= UInt64(chunkSize) ? chunkSize : Sector.roundUp(Int(remaining))
             let chunk = try reader.read(maxLength: want)
             if chunk.isEmpty { break }
-            // Only hash up to the image boundary (device reads are sector-rounded).
             let useful = chunk.prefix(Int(min(UInt64(chunk.count), remaining)))
             hasher.update(data: useful)
             remaining -= UInt64(useful.count)
@@ -99,7 +100,7 @@ public final class WriteEngine {
         if Data(hasher.finalize()) != expectedHash { throw WriteError.verificationMismatch }
     }
 
-    /// SHA-256 of an entire ImageSource (re-reads from the start; caller resets).
+    /// SHA-256 of an entire ImageSource. Assumes `source` is positioned at offset 0; callers should pass a freshly opened instance.
     public static func sha256(of source: ImageSource, chunkSize: Int = Sector.chunkSize) throws -> Data {
         var hasher = SHA256()
         while true {

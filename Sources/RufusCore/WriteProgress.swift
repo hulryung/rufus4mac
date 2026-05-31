@@ -1,5 +1,3 @@
-import Foundation
-
 /// Snapshot of write progress, suitable to send over XPC.
 public struct WriteProgress: Sendable, Codable, Equatable {
     public let bytesWritten: UInt64
@@ -11,6 +9,6 @@ public struct WriteProgress: Sendable, Codable, Equatable {
     }
 
     public var fraction: Double {
-        totalBytes == 0 ? 0 : Double(bytesWritten) / Double(totalBytes)
+        min(1, totalBytes == 0 ? 0 : Double(bytesWritten) / Double(totalBytes))
     }
 }

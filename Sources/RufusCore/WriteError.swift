@@ -1,5 +1,3 @@
-import Foundation
-
 public enum WriteError: Error, Equatable {
     case imageLargerThanTarget(imageSize: UInt64, targetSize: UInt64)
     case deviceOpenFailed(errno: Int32)

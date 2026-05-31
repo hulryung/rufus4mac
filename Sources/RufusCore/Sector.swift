@@ -1,5 +1,3 @@
-import Foundation
-
 /// Sector-size constants and alignment helpers for raw device writes.
 /// Raw devices (`/dev/rdiskN`) require writes in whole-sector multiples.
 public enum Sector {

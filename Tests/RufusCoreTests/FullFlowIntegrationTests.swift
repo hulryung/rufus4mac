@@ -1,5 +1,4 @@
 import XCTest
-import CryptoKit
 import TestSupport
 import DiskDiscovery
 @testable import RufusCore

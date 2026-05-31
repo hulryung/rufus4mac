@@ -11,7 +11,8 @@ public protocol ImageSource: AnyObject {
 }
 
 /// An `ImageSource` backed by a regular file.
-public final class FileImageSource: ImageSource {
+/// Single-task ownership; not safe for concurrent use.
+public final class FileImageSource: ImageSource, @unchecked Sendable {
     private let handle: FileHandle
     public let size: UInt64
 

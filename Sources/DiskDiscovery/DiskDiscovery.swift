@@ -37,7 +37,7 @@ public enum DiskDiscovery {
             let model = [vendor, modelName].filter { !$0.isEmpty }.joined(separator: " ")
 
             results.append(DiskInfo(bsdName: bsdName, model: model.isEmpty ? "Disk" : model,
-                                    sizeBytes: size, isRemovable: true))
+                                    sizeBytes: size, isRemovable: removable))
         }
         return results
     }
