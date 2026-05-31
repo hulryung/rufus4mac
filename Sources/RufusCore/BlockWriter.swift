@@ -27,3 +27,34 @@ public final class FileBlockWriter: BlockWriter {
         try handle.close()
     }
 }
+
+/// A `BlockWriter` backed by a POSIX file descriptor opened on a device
+/// (`/dev/rdiskN`). Writes must be sector-aligned by the caller (WriteEngine).
+public final class DeviceBlockWriter: BlockWriter {
+    private let fd: Int32
+
+    /// Open the device for writing. `O_SYNC` ensures data hits the medium.
+    public init(devicePath: String) throws {
+        let fd = open(devicePath, O_WRONLY | O_SYNC)
+        guard fd >= 0 else { throw WriteError.deviceOpenFailed(errno: errno) }
+        self.fd = fd
+    }
+
+    public func write(_ data: Data) throws {
+        try data.withUnsafeBytes { raw in
+            var written = 0
+            let base = raw.bindMemory(to: UInt8.self).baseAddress!
+            while written < data.count {
+                let n = Foundation.write(fd, base + written, data.count - written)
+                if n < 0 { throw WriteError.writeFailed(errno: errno) }
+                if n == 0 { throw WriteError.shortWrite(expected: data.count, actual: written) }
+                written += n
+            }
+        }
+    }
+
+    public func finish() throws {
+        fsync(fd)
+        close(fd)
+    }
+}

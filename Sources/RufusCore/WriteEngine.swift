@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 /// Streams an image to a block destination in sector-aligned chunks,
 /// padding the final partial sector with zeros (required by raw devices),
@@ -69,5 +70,43 @@ public final class WriteEngine {
         var out = data
         out.append(Data(count: target - data.count))
         return out
+    }
+
+    /// Read back exactly `imageSize` bytes from `reader`, hash them (SHA-256),
+    /// and compare against `expectedHash`. Throws `.verificationMismatch` on mismatch.
+    public func verify(
+        reader: BlockReader,
+        imageSize: UInt64,
+        expectedHash: Data,
+        isCancelled: () -> Bool,
+        progress: (WriteProgress) -> Void
+    ) throws {
+        var hasher = SHA256()
+        var remaining = imageSize
+
+        while remaining > 0 {
+            if isCancelled() { throw WriteError.cancelled }
+            let want = Int(min(UInt64(chunkSize), remaining))
+            let chunk = try reader.read(maxLength: want)
+            if chunk.isEmpty { break }
+            // Only hash up to the image boundary (device reads are sector-rounded).
+            let useful = chunk.prefix(Int(min(UInt64(chunk.count), remaining)))
+            hasher.update(data: useful)
+            remaining -= UInt64(useful.count)
+            progress(WriteProgress(bytesWritten: imageSize - remaining, totalBytes: imageSize))
+        }
+
+        if Data(hasher.finalize()) != expectedHash { throw WriteError.verificationMismatch }
+    }
+
+    /// SHA-256 of an entire ImageSource (re-reads from the start; caller resets).
+    public static func sha256(of source: ImageSource, chunkSize: Int = Sector.chunkSize) throws -> Data {
+        var hasher = SHA256()
+        while true {
+            let chunk = try source.read(maxLength: chunkSize)
+            if chunk.isEmpty { break }
+            hasher.update(data: chunk)
+        }
+        return Data(hasher.finalize())
     }
 }
