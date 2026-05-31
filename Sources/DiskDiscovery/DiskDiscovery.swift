@@ -77,7 +77,13 @@ extension DiskDiscovery {
         }
 
         let box = UnmountBox()
-        let ctx = Unmanaged.passUnretained(box).toOpaque()
+        // passRetained (+1) is balanced by takeRetainedValue in the callback. This keeps
+        // `box` alive for a late callback even after a timeout: if `sema.wait` times out and
+        // we unwind, the caller's local ref drops but DA still holds the +1 via this pointer,
+        // so the deferred callback runs on a live object (no use-after-free) and consumes the
+        // retain. Tearing down the session queue does not synchronously drain an already-
+        // dispatched callback, so the retain is what guarantees safety.
+        let ctx = Unmanaged.passRetained(box).toOpaque()
 
         DADiskUnmount(disk, DADiskUnmountOptions(kDADiskUnmountOptionWhole), unmountCallback, ctx)
 
@@ -93,7 +99,7 @@ private func unmountCallback(
     _ dissenter: DADissenter?,
     _ context: UnsafeMutableRawPointer?
 ) {
-    let box = Unmanaged<UnmountBox>.fromOpaque(context!).takeUnretainedValue()
+    let box = Unmanaged<UnmountBox>.fromOpaque(context!).takeRetainedValue()
     if let dissenter {
         let status = DADissenterGetStatus(dissenter)
         box.failureMessage = "unmount dissented (status \(status))"
@@ -103,8 +109,8 @@ private func unmountCallback(
 
 // Class-based box avoids Swift 6 strict-concurrency issues with mutable captures:
 // writes happen on the DA dispatch queue; reads happen after the semaphore signals
-// (happens-before), so no data race. Using a final class (reference type) lets the
-// C context pointer simply borrow the object without a manual allocate/deallocate.
+// (happens-before), so no data race. The C context pointer holds a +1 retain
+// (passRetained / takeRetainedValue) so the object stays alive for a late callback.
 private final class UnmountBox {
     let sema = DispatchSemaphore(value: 0)
     var failureMessage: String?
