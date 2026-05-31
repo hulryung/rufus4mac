@@ -14,7 +14,7 @@ let package = Package(
         .target(name: "DiskDiscovery"),
         .target(name: "XPCProtocol"),
         .target(name: "TestSupport"),
-        .testTarget(name: "RufusCoreTests", dependencies: ["RufusCore", "TestSupport"]),
+        .testTarget(name: "RufusCoreTests", dependencies: ["RufusCore", "TestSupport", "DiskDiscovery"]),
         .testTarget(name: "DiskDiscoveryTests", dependencies: ["DiskDiscovery"]),
     ]
 )
