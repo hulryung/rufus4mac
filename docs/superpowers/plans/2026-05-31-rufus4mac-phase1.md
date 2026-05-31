@@ -15,6 +15,46 @@
 
 ---
 
+## Implementation Status (updated 2026-06-01)
+
+**Milestones 1 & 2 are COMPLETE** (Tasks 1–11), implemented on branch `phase1-implementation`,
+TDD throughout, two-stage reviewed per task plus a final holistic review. Full suite: **23 tests,
+0 failures, 0 warnings**, including end-to-end write+verify against real `hdiutil` device nodes
+(unprivileged). Tasks 12–26 (XPC helper, SwiftUI app, SMAppService, packaging) remain — they
+require Xcode project work, a real USB stick, and code signing, so they are done interactively /
+in Xcode rather than by automated agents.
+
+### Deviations from the plan as written (what actually shipped)
+
+These were decided/discovered during implementation and review. The RufusCore **public API
+signatures are unchanged**, so downstream tasks (12–26) that consume them still apply as written.
+
+- **CryptoKit, not swift-crypto.** Tasks 6/7/11 use the system framework `import CryptoKit`
+  (identical `SHA256` API, zero external dependencies). `Package.swift` has **no** swift-crypto
+  dependency. Ignore Task 6 Step 2's swift-crypto instructions.
+- **WriteEngine.write accumulate-and-flush (Task 5 fix).** Padding is applied ONLY to the genuine
+  final remainder; intermediate writes flush whole sectors via an internal buffer. This handles
+  partial/short mid-stream `ImageSource.read` returns (the original "pad every chunk" code corrupted
+  output on short reads). Covered by `testShortMidStreamReadsStayAligned`.
+- **verify() sector-rounds the final read (Task 6/final-review fix).** Raw devices reject
+  non-sector-aligned reads with EINVAL; verify now rounds the last read up to a sector and trims
+  the hash input back to the image boundary. Covered by `testWriteVerifyNonSectorAlignedImage`.
+- **DeviceBlockWriter hardening:** `finish()` throws on `fsync` failure and is idempotent (`closed`
+  flag); `write(_:)` guards against empty data; both device I/O classes have `deinit { close(fd) }`.
+- **DiskDiscovery.unmountDisk concurrency (Task 10):** uses a `final class UnmountBox` + top-level
+  `@convention(c)` callback + `Unmanaged.passRetained`/`takeRetainedValue` (NOT the plan's
+  struct+closure form) to satisfy Swift 6 strict concurrency and to avoid a timeout use-after-free.
+- **Sendable:** `WriteEngine: Sendable`; the device/file I/O classes are `@unchecked Sendable`
+  (single-task ownership) — ready for the XPC helper to own them.
+- **Boot-disk safety test:** `DiskDiscoveryTests` asserts the whole disk backing `/` is never
+  returned by `removableDisks()` (replaces the Task 1 placeholder). Internal-disk exclusion was
+  also empirically verified on this machine (boot disk `disk3` correctly excluded).
+- **Still pending (by design):** `WriteError.imageLargerThanTarget` is defined but the capacity
+  pre-check lives in the orchestration layer — implement it in Task 14 (helper) and Task 21 (UI),
+  as the plan already specifies.
+
+---
+
 ## Milestones
 
 1. **M1 — Walking skeleton (risk-first):** `RufusCore` write/verify path proven against a temp file AND an `hdiutil` device, unprivileged. Tasks 1–7.
