@@ -1,0 +1,445 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		336822C5D4BC5FC506FF482D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9283A090DED74921A5C9759 /* ContentView.swift */; };
+		469105559BDA0FB7DE47556F /* DiskDiscovery in Frameworks */ = {isa = PBXBuildFile; productRef = F1DF6BAD588B99D94F11D710 /* DiskDiscovery */; };
+		5603028425CC2DC993702258 /* XPCProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = 694E78800B9A8A7BB17C3B32 /* XPCProtocol */; };
+		77E06CA720367CAE36459F3A /* DiskDiscovery in Frameworks */ = {isa = PBXBuildFile; productRef = E37CFE9D0E3F7155A66C3947 /* DiskDiscovery */; };
+		C93D97A90FFDB963C6CC4236 /* XPCProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = F1DD058F630347D66B95ECF7 /* XPCProtocol */; };
+		D9BA4DC5B164F2B4A3A205D9 /* RufusCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2269175960B33680C330CADC /* RufusCore */; };
+		DCBB4745CB231A72CC42F1EC /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5360FC33FD711D5830519 /* main.swift */; };
+		FFDF8DD1C8CAE69949CA6EC6 /* RufusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF9FCE7DDBBF38F5573AE573 /* RufusApp.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		11E5360FC33FD711D5830519 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		159736C417976813F7440314 /* rufus4mac */ = {isa = PBXFileReference; lastKnownFileType = folder; name = rufus4mac; path = .; sourceTree = SOURCE_ROOT; };
+		B626F1A0FD6D5F0222CD54DF /* RufusHelper */ = {isa = PBXFileReference; includeInIndex = 0; path = RufusHelper; sourceTree = BUILT_PRODUCTS_DIR; };
+		C5C265CB1D95590D9762302B /* RufusApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RufusApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C9283A090DED74921A5C9759 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		EF9FCE7DDBBF38F5573AE573 /* RufusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RufusApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A8B98C779F9BE00399BAF9CB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D9BA4DC5B164F2B4A3A205D9 /* RufusCore in Frameworks */,
+				469105559BDA0FB7DE47556F /* DiskDiscovery in Frameworks */,
+				C93D97A90FFDB963C6CC4236 /* XPCProtocol in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F7EA33C757580FE5B2A49591 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				77E06CA720367CAE36459F3A /* DiskDiscovery in Frameworks */,
+				5603028425CC2DC993702258 /* XPCProtocol in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		464C39B780B70A644584D172 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				159736C417976813F7440314 /* rufus4mac */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		6C5AD5843820AB1B31794F78 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C5C265CB1D95590D9762302B /* RufusApp.app */,
+				B626F1A0FD6D5F0222CD54DF /* RufusHelper */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		99A00A1680B89439F33ED52E /* Helper */ = {
+			isa = PBXGroup;
+			children = (
+				11E5360FC33FD711D5830519 /* main.swift */,
+			);
+			path = Helper;
+			sourceTree = "<group>";
+		};
+		A7DBAEDA55096ECCAB0D97E0 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				C9283A090DED74921A5C9759 /* ContentView.swift */,
+				EF9FCE7DDBBF38F5573AE573 /* RufusApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		FAAFC1117E751C7A5FA995A4 = {
+			isa = PBXGroup;
+			children = (
+				A7DBAEDA55096ECCAB0D97E0 /* App */,
+				99A00A1680B89439F33ED52E /* Helper */,
+				464C39B780B70A644584D172 /* Packages */,
+				6C5AD5843820AB1B31794F78 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		056044DA23C6CE4E2A82BBCD /* RufusHelper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1136A15FA6B8802989E8285F /* Build configuration list for PBXNativeTarget "RufusHelper" */;
+			buildPhases = (
+				4B2BC6E940E15EE852D417B2 /* Sources */,
+				A8B98C779F9BE00399BAF9CB /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RufusHelper;
+			packageProductDependencies = (
+				2269175960B33680C330CADC /* RufusCore */,
+				F1DF6BAD588B99D94F11D710 /* DiskDiscovery */,
+				F1DD058F630347D66B95ECF7 /* XPCProtocol */,
+			);
+			productName = RufusHelper;
+			productReference = B626F1A0FD6D5F0222CD54DF /* RufusHelper */;
+			productType = "com.apple.product-type.tool";
+		};
+		4CA58B66DC00AE7B25CB70D8 /* RufusApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B5C91FF6F54C79FAAB8921C1 /* Build configuration list for PBXNativeTarget "RufusApp" */;
+			buildPhases = (
+				093657A403A11A479D4A5C63 /* Sources */,
+				F7EA33C757580FE5B2A49591 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RufusApp;
+			packageProductDependencies = (
+				E37CFE9D0E3F7155A66C3947 /* DiskDiscovery */,
+				694E78800B9A8A7BB17C3B32 /* XPCProtocol */,
+			);
+			productName = RufusApp;
+			productReference = C5C265CB1D95590D9762302B /* RufusApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E494247A98C6F2A77F5081C3 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 6CFFFF8DB49AAB8FCD3E0210 /* Build configuration list for PBXProject "rufus4mac" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = FAAFC1117E751C7A5FA995A4;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				0FF8A2DDE06624F03FC2E354 /* XCLocalSwiftPackageReference "." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 6C5AD5843820AB1B31794F78 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4CA58B66DC00AE7B25CB70D8 /* RufusApp */,
+				056044DA23C6CE4E2A82BBCD /* RufusHelper */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		093657A403A11A479D4A5C63 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				336822C5D4BC5FC506FF482D /* ContentView.swift in Sources */,
+				FFDF8DD1C8CAE69949CA6EC6 /* RufusApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4B2BC6E940E15EE852D417B2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DCBB4745CB231A72CC42F1EC /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		5D86656A86589C117D6CBD80 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		87996B8CA78A71E016BC1807 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.huconn.rufus4mac.helper;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		AC9F6B9F1B656BC2FB48A325 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSUIElement = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.huconn.rufus4mac;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		C9D7CEEFFD1EDC330D513672 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		CDF8E5698FB1889365AB5580 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSUIElement = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.huconn.rufus4mac;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		E97BBA39492E53C73D208744 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.huconn.rufus4mac.helper;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1136A15FA6B8802989E8285F /* Build configuration list for PBXNativeTarget "RufusHelper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E97BBA39492E53C73D208744 /* Debug */,
+				87996B8CA78A71E016BC1807 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6CFFFF8DB49AAB8FCD3E0210 /* Build configuration list for PBXProject "rufus4mac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5D86656A86589C117D6CBD80 /* Debug */,
+				C9D7CEEFFD1EDC330D513672 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B5C91FF6F54C79FAAB8921C1 /* Build configuration list for PBXNativeTarget "RufusApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CDF8E5698FB1889365AB5580 /* Debug */,
+				AC9F6B9F1B656BC2FB48A325 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		0FF8A2DDE06624F03FC2E354 /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = .;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		2269175960B33680C330CADC /* RufusCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RufusCore;
+		};
+		694E78800B9A8A7BB17C3B32 /* XPCProtocol */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = XPCProtocol;
+		};
+		E37CFE9D0E3F7155A66C3947 /* DiskDiscovery */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DiskDiscovery;
+		};
+		F1DD058F630347D66B95ECF7 /* XPCProtocol */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = XPCProtocol;
+		};
+		F1DF6BAD588B99D94F11D710 /* DiskDiscovery */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DiskDiscovery;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = E494247A98C6F2A77F5081C3 /* Project object */;
+}
