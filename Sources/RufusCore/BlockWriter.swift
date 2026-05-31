@@ -41,6 +41,7 @@ public final class DeviceBlockWriter: BlockWriter {
     }
 
     public func write(_ data: Data) throws {
+        guard !data.isEmpty else { return }
         try data.withUnsafeBytes { raw in
             var written = 0
             let base = raw.bindMemory(to: UInt8.self).baseAddress!
@@ -54,7 +55,11 @@ public final class DeviceBlockWriter: BlockWriter {
     }
 
     public func finish() throws {
-        fsync(fd)
+        if fsync(fd) != 0 {
+            let e = errno
+            close(fd)
+            throw WriteError.writeFailed(errno: e)
+        }
         close(fd)
     }
 }
