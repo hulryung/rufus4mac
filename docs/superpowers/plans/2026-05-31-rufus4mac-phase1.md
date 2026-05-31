@@ -17,12 +17,29 @@
 
 ## Implementation Status (updated 2026-06-01)
 
-**Milestones 1 & 2 are COMPLETE** (Tasks 1–11), implemented on branch `phase1-implementation`,
-TDD throughout, two-stage reviewed per task plus a final holistic review. Full suite: **23 tests,
-0 failures, 0 warnings**, including end-to-end write+verify against real `hdiutil` device nodes
-(unprivileged). Tasks 12–26 (XPC helper, SwiftUI app, SMAppService, packaging) remain — they
-require Xcode project work, a real USB stick, and code signing, so they are done interactively /
-in Xcode rather than by automated agents.
+**Tasks 1–25 are done** on branch `phase1-implementation` — TDD throughout, two-stage reviewed
+per task plus holistic + integration reviews. Real bugs caught & fixed in review (mid-stream
+padding corruption, verify EINVAL on unaligned reads, unmount timeout use-after-free, fsync
+swallow, helper fail-OPEN safety hole, silent XPC error). Verified state:
+- **SPM core (M1–2, Tasks 1–11):** 23 tests, 0 failures/warnings, end-to-end write+verify against
+  real `hdiutil` device nodes, unprivileged.
+- **App + helper (M3–4, Tasks 12–22):** `rufus4mac.xcodeproj` generated via **xcodegen** (Task 13
+  done headlessly, not in the Xcode GUI). RufusApp + RufusHelper both compile via `xcodebuild`
+  (`CODE_SIGNING_ALLOWED=NO`). Bundle embeds the helper at `Contents/MacOS/RufusHelper` and the
+  LaunchDaemon plist at `Contents/Library/LaunchDaemons/`. Helper fails closed on non-removable
+  targets and pins XPC callers to the HUCONN signing requirement.
+- **Docs/packaging (M5, Tasks 23–25):** `docs/manual-test-checklist.md`, `scripts/build-dmg.sh`
+  (not yet run), README updated.
+
+**Remaining — genuinely manual (cannot be automated):**
+- **Task 15 (optional):** dev `sudo launchctl` helper install — superseded by SMAppService for
+  production; only useful for local dev without a signed build.
+- **Run `scripts/build-dmg.sh`:** needs Developer ID signing (cert present) + a `notarytool`
+  credential profile the user must create. SMAppService registration & the privileged write only
+  work from a signed build.
+- **Real-USB destructive test (`docs/manual-test-checklist.md`):** needs hardware.
+
+Everything below (the original task-by-task plan) is retained as the historical record.
 
 ### Deviations from the plan as written (what actually shipped)
 
