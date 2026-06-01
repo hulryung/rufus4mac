@@ -18,6 +18,8 @@ targets:
         product: DiskDiscovery
       - package: RufusPkg
         product: RufusCore
+      - package: RufusPkg
+        product: WindowsMedia
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.huconn.rufus4mac

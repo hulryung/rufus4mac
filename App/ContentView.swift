@@ -6,9 +6,11 @@ struct ContentView: View {
     @StateObject private var diskVM = DiskListViewModel()
     @StateObject private var image = ImageSelection()
     @StateObject private var writer = ElevatedWriter()
+    @StateObject private var winWriter = WindowsWriter()
     @State private var showConfirm = false
     @State private var importing = false
     @AppStorage("verifyAfterWrite") private var verifyAfterWrite = true
+    @AppStorage("bypassWin11") private var bypassWin11 = true
 
     /// Brand accent — matches the app icon's orange.
     private let accent = Color(red: 0.90, green: 0.32, blue: 0.06)
@@ -17,9 +19,18 @@ struct ContentView: View {
         guard let disk = diskVM.selected, image.imageSize > 0 else { return false }
         return !image.fits(disk: disk)
     }
+
+    // Active-writer accessors: route to whichever writer is relevant for the selected image type.
+    private var activePhase: String { image.isWindows ? winWriter.phase : writer.phase }
+    private var activeFraction: Double { image.isWindows ? winWriter.fraction : writer.fraction }
+    private var activeFinished: Bool { image.isWindows ? winWriter.finished : writer.finished }
+    private var activeError: String? { image.isWindows ? winWriter.errorText : writer.errorText }
+    private var activeRunning: Bool { image.isWindows ? winWriter.isRunning : writer.isRunning }
+
     private var canWrite: Bool {
-        image.imageURL != nil && diskVM.selected != nil && image.sha256Base64 != nil && !oversize
-            && !writer.isRunning
+        guard image.imageURL != nil, let disk = diskVM.selected, !activeRunning else { return false }
+        if image.imageSize > 0 && !image.fits(disk: disk) { return false }
+        return image.isWindows ? true : (image.sha256Base64 != nil)
     }
 
     var body: some View {
@@ -53,18 +64,27 @@ struct ContentView: View {
                 }
             }
 
+            if image.isWindows {
+                field(title: "Windows install media", systemImage: "window.shade.closed") {
+                    Toggle("Bypass Windows 11 compatibility checks", isOn: $bypassWin11)
+                        .toggleStyle(.checkbox).font(.callout)
+                }
+            }
+
             if oversize {
                 Label("Image is larger than the selected disk.", systemImage: "exclamationmark.triangle.fill")
                     .font(.callout).foregroundStyle(.orange)
             }
 
-            if writer.isRunning || writer.finished {
+            if activeRunning || activeFinished {
                 statusRow
             }
 
-            Toggle("Verify after writing", isOn: $verifyAfterWrite)
-                .toggleStyle(.checkbox).font(.callout)
-                .disabled(writer.isRunning)
+            if !image.isWindows {
+                Toggle("Verify after writing", isOn: $verifyAfterWrite)
+                    .toggleStyle(.checkbox).font(.callout)
+                    .disabled(activeRunning)
+            }
 
             Button { showConfirm = true } label: {
                 Label("Write", systemImage: "arrow.down.to.line")
@@ -109,23 +129,23 @@ struct ContentView: View {
 
     @ViewBuilder
     private var statusRow: some View {
-        let pct = Int(writer.fraction * 100)
+        let pct = Int(activeFraction * 100)
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                if writer.finished, writer.errorText == nil {
+                if activeFinished, activeError == nil {
                     Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
                     Text("Done").fontWeight(.medium)
-                } else if let err = writer.errorText {
+                } else if let err = activeError {
                     Image(systemName: "xmark.octagon.fill").foregroundStyle(.red)
                     Text(err).lineLimit(2).font(.callout).foregroundStyle(.secondary)
                 } else {
-                    Text("\(writer.phase.capitalized)…").fontWeight(.medium)
+                    Text("\(activePhase.capitalized)…").fontWeight(.medium)
                     Spacer()
                     Text("\(pct)%").monospacedDigit().foregroundStyle(.secondary)
                 }
             }
-            if !writer.finished || writer.errorText == nil {
-                ProgressView(value: writer.finished ? 1 : writer.fraction).tint(accent)
+            if !activeFinished || activeError == nil {
+                ProgressView(value: activeFinished ? 1 : activeFraction).tint(accent)
             }
         }
     }
@@ -148,9 +168,12 @@ struct ContentView: View {
     }
 
     private func startWrite() {
-        guard let url = image.imageURL, let disk = diskVM.selected,
-              let hash = image.sha256Base64 else { return }
-        writer.startWrite(imagePath: url.path, bsdName: disk.bsdName, sha256Base64: hash,
-                          verify: verifyAfterWrite)
+        guard let url = image.imageURL, let disk = diskVM.selected else { return }
+        if image.isWindows {
+            winWriter.start(isoPath: url.path, bsdName: disk.bsdName, bypassWin11: bypassWin11)
+        } else if let hash = image.sha256Base64 {
+            writer.startWrite(imagePath: url.path, bsdName: disk.bsdName, sha256Base64: hash,
+                              verify: verifyAfterWrite)
+        }
     }
 }

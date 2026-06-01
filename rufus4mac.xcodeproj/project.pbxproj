@@ -10,9 +10,11 @@
 		0BDECFE0DCD81BA07D3A314A /* DiskListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BF079F0C6B1EA348EFE2FAC /* DiskListViewModel.swift */; };
 		23953896DE9F8D7AF8BEC472 /* ImageSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4035948535B6A00E87094F5 /* ImageSelection.swift */; };
 		336822C5D4BC5FC506FF482D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9283A090DED74921A5C9759 /* ContentView.swift */; };
+		3D68279071F8AC8F3843B01D /* WindowsWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E02135202D237D0CE1790F36 /* WindowsWriter.swift */; };
 		5603028425CC2DC993702258 /* RufusCore in Frameworks */ = {isa = PBXBuildFile; productRef = DFCC75988298AE57BBFCBCEA /* RufusCore */; };
 		77E06CA720367CAE36459F3A /* DiskDiscovery in Frameworks */ = {isa = PBXBuildFile; productRef = E37CFE9D0E3F7155A66C3947 /* DiskDiscovery */; };
 		C7FB1424CA852C49E7FDD0C7 /* ElevatedWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD86C0CD50B072BC1B022B81 /* ElevatedWriter.swift */; };
+		DDBB44490A097AE2B92950B2 /* WindowsMedia in Frameworks */ = {isa = PBXBuildFile; productRef = 6D2D3E7972AE7DC5A3DC7FA7 /* WindowsMedia */; };
 		FECB7A625D0C40827702D555 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6FC3B6AE39D7A5B5B76C2AF8 /* Assets.xcassets */; };
 		FFDF8DD1C8CAE69949CA6EC6 /* RufusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF9FCE7DDBBF38F5573AE573 /* RufusApp.swift */; };
 /* End PBXBuildFile section */
@@ -25,6 +27,7 @@
 		C5C265CB1D95590D9762302B /* RufusApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RufusApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9283A090DED74921A5C9759 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		CD86C0CD50B072BC1B022B81 /* ElevatedWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElevatedWriter.swift; sourceTree = "<group>"; };
+		E02135202D237D0CE1790F36 /* WindowsWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowsWriter.swift; sourceTree = "<group>"; };
 		EF9FCE7DDBBF38F5573AE573 /* RufusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RufusApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -35,6 +38,7 @@
 			files = (
 				77E06CA720367CAE36459F3A /* DiskDiscovery in Frameworks */,
 				5603028425CC2DC993702258 /* RufusCore in Frameworks */,
+				DDBB44490A097AE2B92950B2 /* WindowsMedia in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -66,6 +70,7 @@
 				CD86C0CD50B072BC1B022B81 /* ElevatedWriter.swift */,
 				C4035948535B6A00E87094F5 /* ImageSelection.swift */,
 				EF9FCE7DDBBF38F5573AE573 /* RufusApp.swift */,
+				E02135202D237D0CE1790F36 /* WindowsWriter.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -98,6 +103,7 @@
 			packageProductDependencies = (
 				E37CFE9D0E3F7155A66C3947 /* DiskDiscovery */,
 				DFCC75988298AE57BBFCBCEA /* RufusCore */,
+				6D2D3E7972AE7DC5A3DC7FA7 /* WindowsMedia */,
 			);
 			productName = RufusApp;
 			productReference = C5C265CB1D95590D9762302B /* RufusApp.app */;
@@ -157,6 +163,7 @@
 				C7FB1424CA852C49E7FDD0C7 /* ElevatedWriter.swift in Sources */,
 				23953896DE9F8D7AF8BEC472 /* ImageSelection.swift in Sources */,
 				FFDF8DD1C8CAE69949CA6EC6 /* RufusApp.swift in Sources */,
+				3D68279071F8AC8F3843B01D /* WindowsWriter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -355,6 +362,10 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		6D2D3E7972AE7DC5A3DC7FA7 /* WindowsMedia */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WindowsMedia;
+		};
 		DFCC75988298AE57BBFCBCEA /* RufusCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = RufusCore;
