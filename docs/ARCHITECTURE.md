@@ -58,8 +58,14 @@ usually larger than FAT32's 4 GB per-file limit. So:
 4. If `install.wim` > 4 GB, split it into `install.swm` chunks with the bundled `wimlib-imagex`
    (Windows Setup reads split SWM natively). The app reads the user-picked file itself, so
    TCC-protected sources like `~/Downloads` work.
-5. Optional **Windows 11 bypass**: zero `sources/appraiserres.dll` and write an `autounattend.xml`
-   with `LabConfig` bypass keys (TPM/SecureBoot/RAM/CPU/Storage).
+5. Optional **Windows User Experience** customization: `UnattendBuilder` composes a single
+   `autounattend.xml` from a `WindowsCustomization` across the windowsPE / specialize / oobeSystem
+   passes — Win11 bypass (`LabConfig` TPM/SecureBoot/RAM/CPU/Storage), a local admin account
+   (blank password, which also skips the MS-account screen), skip-privacy OOBE settings, region &
+   language (the app injects the macOS BCP-47 locale + a mapped Windows time-zone), and disabling
+   BitLocker auto-encryption. `WindowsCustomizer.apply` writes that file and, only under the Win11
+   bypass, zeroes `sources/appraiserres.dll`. The username is XML-escaped. If no option is selected,
+   no `autounattend.xml` is written.
 
 Design: `docs/superpowers/specs/2026-06-01-rufus4mac-phase2-windows-design.md`.
 

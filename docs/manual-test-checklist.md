@@ -58,6 +58,16 @@ Failure paths:
 7. [ ] An oversized non-`.wim` install image (e.g. a > 4 GB `install.esd`) fails fast with a clear
        "not supported" error rather than a cryptic FAT32 copy failure.
 
+### Windows User Experience options (autounattend.xml)
+- [ ] Enable **Create local account** + a username → after install, OOBE skips the Microsoft-account
+      screen and the named local admin exists (blank password).
+- [ ] Enable **Skip privacy questions** → OOBE privacy screens are skipped.
+- [ ] Enable **Use this Mac's region & language** → installed Windows uses the matching locale
+      (and time zone if the IANA zone is mapped).
+- [ ] Enable **Disable BitLocker auto-encryption** → the system drive is not auto-encrypted.
+- [ ] With all options off (and no bypass), **no** `autounattend.xml` is written to the USB.
+- [ ] A username containing `&` produces a valid `autounattend.xml` (escaped), not a broken one.
+
 ---
 
 ## Phase 3 — Format-only (manual)

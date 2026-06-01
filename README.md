@@ -24,8 +24,9 @@ and notarized by Apple, so it launches without Gatekeeper warnings.
 
 > ⚠️ Writing erases the entire target disk. Double-check the selection.
 
-For Windows ISOs, an optional **"Bypass Windows 11 compatibility checks"** toggle handles
-TPM/Secure Boot/RAM/CPU requirements.
+For Windows ISOs you can preset **Windows User Experience** options, applied via a generated
+`autounattend.xml`: bypass Windows 11 checks (TPM/Secure Boot/RAM/CPU), create a local account,
+skip privacy questions, match this Mac's region & language, and disable BitLocker auto-encryption.
 
 **Format mode:** select no image and the button becomes **Format** — erase a USB as **exFAT** or
 **FAT32** with **MBR/GPT** and a volume label.
