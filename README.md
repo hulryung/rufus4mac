@@ -4,6 +4,10 @@ Create bootable USB drives on macOS — a [Rufus](https://rufus.ie)-style tool f
 Write Linux/general disk images **and** Windows 10/11 install media, with progress and
 verification. Native Swift + SwiftUI; no background daemon, no Full Disk Access.
 
+<p align="center">
+  <img src="docs/images/screenshot.png" alt="rufus4mac" width="560">
+</p>
+
 ## Install
 
 Download `rufus4mac-<version>.dmg` from the
