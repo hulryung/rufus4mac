@@ -19,6 +19,17 @@ Apple Silicon.
   23 unit/integration tests, including end-to-end runs against `hdiutil`-backed devices.
 - ✅ SwiftUI app with an inline authorization flow — no daemon install, no manual settings.
 
+## Install
+
+Download `rufus4mac-<version>.dmg` from the [Releases](https://github.com/hulryung/rufus4mac/releases)
+page, open it, and drag **RufusApp** to Applications. Requires **macOS 13+** (Apple Silicon or Intel).
+
+> The build is signed with a Developer ID but not yet notarized, so on first launch macOS Gatekeeper
+> may block it. Right-click the app → **Open** → **Open** to run it once; subsequent launches are normal.
+
+Writing to a USB triggers a one-time macOS authorization prompt (via `authopen`) — no Full Disk
+Access or background helper is installed.
+
 ## How it works
 
 ```
