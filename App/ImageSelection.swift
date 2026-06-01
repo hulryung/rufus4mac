@@ -27,15 +27,9 @@ final class ImageSelection: ObservableObject {
         guard let url = imageURL else { return }
         hashing = true
         defer { hashing = false }
-        let base64: String? = await Task.detached {
-            guard let src = try? FileImageSource(url: url) else { return nil }
-            defer { src.close() }
-            let data = try? WriteEngine.sha256(of: src)
-            return data?.base64EncodedString()
-        }.value
-        sha256Base64 = base64
 
-        // Detect Windows ISO after hash is computed (url is already captured above)
+        // Detect Windows first (cheap: mount + check a few paths). The Windows path
+        // doesn't need a source hash, so skip the expensive full-image SHA for it.
         let detected: Bool = await Task.detached {
             let inspector = ISOInspector(runner: SystemProcessRunner())
             guard let info = try? inspector.mountAndInspect(isoPath: url.path) else { return false }
@@ -43,5 +37,13 @@ final class ImageSelection: ObservableObject {
             return info.isWindows
         }.value
         isWindows = detected
+        guard !detected else { sha256Base64 = nil; return }
+
+        let base64: String? = await Task.detached {
+            guard let src = try? FileImageSource(url: url) else { return nil }
+            defer { src.close() }
+            return (try? WriteEngine.sha256(of: src))?.base64EncodedString()
+        }.value
+        sha256Base64 = base64
     }
 }

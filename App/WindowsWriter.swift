@@ -22,13 +22,23 @@ final class WindowsWriter: NSObject, ObservableObject {
         await MainActor.run { self.errorText = m; self.finished = true; self.isRunning = false }
     }
 
-    /// Parse the top-level `MountPoint` from `diskutil info -plist` output.
-    private nonisolated static func mountPoint(fromDiskutilInfoPlist plist: String) -> String? {
-        guard let data = plist.data(using: .utf8),
-              let obj = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil),
-              let dict = obj as? [String: Any],
-              let mp = dict["MountPoint"] as? String, !mp.isEmpty else { return nil }
-        return mp
+    /// Find the mount point of the slice whose VolumeName matches `volumeName`, scanning
+    /// /dev/<bsd>s1..s6. (diskutil GPT format may place the FAT volume on s1 OR s2 — after
+    /// an EFI System Partition — so we can't assume a fixed slice index.)
+    private nonisolated static func findVolumeMountPoint(runner: ProcessRunner, bsdName: String,
+                                                         volumeName: String) -> String? {
+        for i in 1...6 {
+            guard let r = try? runner.run("/usr/sbin/diskutil", ["info", "-plist", "/dev/\(bsdName)s\(i)"]),
+                  r.status == 0,
+                  let data = r.stdout.data(using: .utf8),
+                  let dict = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any]
+            else { continue }
+            if (dict["VolumeName"] as? String) == volumeName,
+               let mp = dict["MountPoint"] as? String, !mp.isEmpty {
+                return mp
+            }
+        }
+        return nil
     }
 
     private nonisolated func run(isoPath: String, bsdName: String, bypassWin11: Bool) async {
@@ -47,9 +57,7 @@ final class WindowsWriter: NSObject, ObservableObject {
             }
             await set("formatting", 0)
             try writer.format(bsdName: bsdName, volumeName: "WIN")
-            // diskutil mounts /dev/<bsd>s1 as the new FAT volume; read its MountPoint.
-            let pinfo = try runner.run("/usr/sbin/diskutil", ["info", "-plist", "/dev/\(bsdName)s1"])
-            guard let mp = Self.mountPoint(fromDiskutilInfoPlist: pinfo.stdout) else {
+            guard let mp = Self.findVolumeMountPoint(runner: runner, bsdName: bsdName, volumeName: "WIN") else {
                 await fail("Could not locate the formatted volume."); return
             }
             try writer.copyAndSplit(mountedISORoot: info.mountPoint, usbMountPoint: mp,

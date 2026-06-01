@@ -28,7 +28,7 @@ struct ContentView: View {
     private var activeRunning: Bool { image.isWindows ? winWriter.isRunning : writer.isRunning }
 
     private var canWrite: Bool {
-        guard image.imageURL != nil, let disk = diskVM.selected, !activeRunning else { return false }
+        guard image.imageURL != nil, let disk = diskVM.selected, !activeRunning, !image.hashing else { return false }
         if image.imageSize > 0 && !image.fits(disk: disk) { return false }
         return image.isWindows ? true : (image.sha256Base64 != nil)
     }

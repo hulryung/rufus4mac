@@ -17,6 +17,8 @@ final class Win11BypassTests: XCTestCase {
         let xml = try String(contentsOfFile: autoun, encoding: .utf8)
         XCTAssertTrue(xml.contains("BypassTPMCheck"))
         XCTAssertTrue(xml.contains("BypassSecureBootCheck"))
+        XCTAssertTrue(xml.contains("BypassCPUCheck"))
+        XCTAssertTrue(xml.hasPrefix("<?xml"), "autounattend must start with <?xml at column 0")
     }
 
     func testNoAppraiserStillWritesAutounattend() throws {
