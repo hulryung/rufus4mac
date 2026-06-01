@@ -20,8 +20,17 @@ public struct SystemProcessRunner: ProcessRunner {
         let out = Pipe(), err = Pipe()
         p.standardOutput = out; p.standardError = err
         try p.run()
+        // Drain stderr on a background queue while stdout is read on this thread,
+        // so a child that fills one pipe before closing the other can't deadlock us.
+        let errFH = err.fileHandleForReading
+        var eData = Data()
+        let done = DispatchSemaphore(value: 0)
+        DispatchQueue.global().async {
+            eData = errFH.readDataToEndOfFile()
+            done.signal()
+        }
         let oData = out.fileHandleForReading.readDataToEndOfFile()
-        let eData = err.fileHandleForReading.readDataToEndOfFile()
+        done.wait()
         p.waitUntilExit()
         return ProcessResult(status: p.terminationStatus,
                              stdout: String(data: oData, encoding: .utf8) ?? "",

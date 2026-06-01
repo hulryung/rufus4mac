@@ -15,4 +15,14 @@ final class ProcessRunnerTests: XCTestCase {
         XCTAssertEqual(result.status, 3)
         XCTAssertTrue(result.stderr.contains("oops"))
     }
+
+    func testLargeStderrDoesNotDeadlock() throws {
+        // ~512 KB to stderr before any stdout — would hang a sequential reader.
+        let r = SystemProcessRunner()
+        let script = "yes X | head -c 524288 1>&2; echo done"
+        let result = try r.run("/bin/sh", ["-c", script])
+        XCTAssertEqual(result.status, 0)
+        XCTAssertEqual(result.stdout.trimmingCharacters(in: .whitespacesAndNewlines), "done")
+        XCTAssertEqual(result.stderr.utf8.count, 524288)
+    }
 }
