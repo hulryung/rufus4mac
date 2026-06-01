@@ -37,4 +37,33 @@ final class ISOInspectorTests: XCTestCase {
         XCTAssertFalse(d.isWindows)
         XCTAssertNil(d.installImageRelPath)
     }
+
+    func testInstallWimWithoutBootFileIsNotWindows() throws {
+        // AND condition: install image present but NO UEFI boot file → not Windows.
+        let root = try makeTree(["sources/install.wim": 1000])
+        defer { try? FileManager.default.removeItem(at: root) }
+        let d = ISOInspector.detectWindows(atMountedRoot: root.path)
+        XCTAssertFalse(d.isWindows)
+        XCTAssertNil(d.installImageRelPath)
+    }
+
+    func testInstallWimTakesPriorityOverEsd() throws {
+        let root = try makeTree(["sources/install.wim": 1000, "sources/install.esd": 2000,
+                                 "efi/boot/bootx64.efi": 10])
+        defer { try? FileManager.default.removeItem(at: root) }
+        let d = ISOInspector.detectWindows(atMountedRoot: root.path)
+        XCTAssertTrue(d.isWindows)
+        XCTAssertEqual(d.installImageRelPath, "sources/install.wim")
+        XCTAssertEqual(d.installImageSizeBytes, 1000)
+    }
+
+    func testDetectsViaBootmgfwEfiPath() throws {
+        // Older media: only efi/microsoft/boot/bootmgfw.efi present (no efi/boot/bootx64.efi).
+        let root = try makeTree(["sources/install.wim": 500,
+                                 "efi/microsoft/boot/bootmgfw.efi": 10])
+        defer { try? FileManager.default.removeItem(at: root) }
+        let d = ISOInspector.detectWindows(atMountedRoot: root.path)
+        XCTAssertTrue(d.isWindows)
+        XCTAssertEqual(d.installImageRelPath, "sources/install.wim")
+    }
 }
