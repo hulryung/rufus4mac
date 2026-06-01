@@ -24,6 +24,7 @@
 		DDBB44490A097AE2B92950B2 /* RufusCore in Frameworks */ = {isa = PBXBuildFile; productRef = DFCC75988298AE57BBFCBCEA /* RufusCore */; };
 		E056A8937A0901F3E4AD6240 /* com.huconn.rufus4mac.helper.plist in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8FE459047CF2873E8C72C9E0 /* com.huconn.rufus4mac.helper.plist */; };
 		F5A4FF7AAF44B5E8B48FFF66 /* CLIWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E78B45154F95B7CABF38688 /* CLIWriter.swift */; };
+		FECB7A625D0C40827702D555 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6FC3B6AE39D7A5B5B76C2AF8 /* Assets.xcassets */; };
 		FFDF8DD1C8CAE69949CA6EC6 /* RufusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF9FCE7DDBBF38F5573AE573 /* RufusApp.swift */; };
 /* End PBXBuildFile section */
 
@@ -66,6 +67,7 @@
 		159736C417976813F7440314 /* rufus4mac */ = {isa = PBXFileReference; lastKnownFileType = folder; name = rufus4mac; path = .; sourceTree = SOURCE_ROOT; };
 		5FCB8BC3DFC9FE7841E2510E /* WriteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WriteService.swift; sourceTree = "<group>"; };
 		6E78B45154F95B7CABF38688 /* CLIWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIWriter.swift; sourceTree = "<group>"; };
+		6FC3B6AE39D7A5B5B76C2AF8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7BF079F0C6B1EA348EFE2FAC /* DiskListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskListViewModel.swift; sourceTree = "<group>"; };
 		8067C833724BA6CC8FEE1FAF /* HelperInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperInstaller.swift; sourceTree = "<group>"; };
 		8FE459047CF2873E8C72C9E0 /* com.huconn.rufus4mac.helper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = com.huconn.rufus4mac.helper.plist; sourceTree = "<group>"; };
@@ -133,6 +135,7 @@
 		A7DBAEDA55096ECCAB0D97E0 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				6FC3B6AE39D7A5B5B76C2AF8 /* Assets.xcassets */,
 				C9283A090DED74921A5C9759 /* ContentView.swift */,
 				7BF079F0C6B1EA348EFE2FAC /* DiskListViewModel.swift */,
 				CD86C0CD50B072BC1B022B81 /* ElevatedWriter.swift */,
@@ -183,6 +186,7 @@
 			buildConfigurationList = B5C91FF6F54C79FAAB8921C1 /* Build configuration list for PBXNativeTarget "RufusApp" */;
 			buildPhases = (
 				093657A403A11A479D4A5C63 /* Sources */,
+				51E639202020DF192DAA3DF3 /* Resources */,
 				D631052CBB87A498BE85F5A2 /* CopyFiles */,
 				F7EA33C757580FE5B2A49591 /* Frameworks */,
 				C42432AE57CBE8AECAE2A7D9 /* Embed Dependencies */,
@@ -235,6 +239,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		51E639202020DF192DAA3DF3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FECB7A625D0C40827702D555 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		093657A403A11A479D4A5C63 /* Sources */ = {

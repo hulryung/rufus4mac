@@ -39,6 +39,7 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_LSUIElement: NO
         INFOPLIST_KEY_NSRemovableVolumesUsageDescription: "rufus4mac writes bootable images to removable USB drives, which requires access to removable volumes."
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_HARDENED_RUNTIME: YES
         SWIFT_VERSION: "6.0"
   RufusHelper:
