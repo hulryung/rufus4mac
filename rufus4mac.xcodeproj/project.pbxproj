@@ -8,71 +8,19 @@
 
 /* Begin PBXBuildFile section */
 		0BDECFE0DCD81BA07D3A314A /* DiskListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BF079F0C6B1EA348EFE2FAC /* DiskListViewModel.swift */; };
-		118FA806CDA29CF54C6E4A0D /* RufusHelper in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = B626F1A0FD6D5F0222CD54DF /* RufusHelper */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		23953896DE9F8D7AF8BEC472 /* ImageSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4035948535B6A00E87094F5 /* ImageSelection.swift */; };
 		336822C5D4BC5FC506FF482D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9283A090DED74921A5C9759 /* ContentView.swift */; };
-		469105559BDA0FB7DE47556F /* DiskDiscovery in Frameworks */ = {isa = PBXBuildFile; productRef = F1DF6BAD588B99D94F11D710 /* DiskDiscovery */; };
-		52E1CF4C9C2DB7B3A2F11068 /* WriteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FCB8BC3DFC9FE7841E2510E /* WriteService.swift */; };
-		5603028425CC2DC993702258 /* XPCProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = 694E78800B9A8A7BB17C3B32 /* XPCProtocol */; };
+		5603028425CC2DC993702258 /* RufusCore in Frameworks */ = {isa = PBXBuildFile; productRef = DFCC75988298AE57BBFCBCEA /* RufusCore */; };
 		77E06CA720367CAE36459F3A /* DiskDiscovery in Frameworks */ = {isa = PBXBuildFile; productRef = E37CFE9D0E3F7155A66C3947 /* DiskDiscovery */; };
-		847E5FF8FCA009055951958C /* WriteClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99C99A1702E2234A2F1E496C /* WriteClient.swift */; };
 		C7FB1424CA852C49E7FDD0C7 /* ElevatedWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD86C0CD50B072BC1B022B81 /* ElevatedWriter.swift */; };
-		C93D97A90FFDB963C6CC4236 /* XPCProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = F1DD058F630347D66B95ECF7 /* XPCProtocol */; };
-		CF22719980D7F642A4549708 /* HelperInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8067C833724BA6CC8FEE1FAF /* HelperInstaller.swift */; };
-		D9BA4DC5B164F2B4A3A205D9 /* RufusCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2269175960B33680C330CADC /* RufusCore */; };
-		DCBB4745CB231A72CC42F1EC /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5360FC33FD711D5830519 /* main.swift */; };
-		DDBB44490A097AE2B92950B2 /* RufusCore in Frameworks */ = {isa = PBXBuildFile; productRef = DFCC75988298AE57BBFCBCEA /* RufusCore */; };
-		E056A8937A0901F3E4AD6240 /* com.huconn.rufus4mac.helper.plist in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8FE459047CF2873E8C72C9E0 /* com.huconn.rufus4mac.helper.plist */; };
-		F5A4FF7AAF44B5E8B48FFF66 /* CLIWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E78B45154F95B7CABF38688 /* CLIWriter.swift */; };
 		FECB7A625D0C40827702D555 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6FC3B6AE39D7A5B5B76C2AF8 /* Assets.xcassets */; };
 		FFDF8DD1C8CAE69949CA6EC6 /* RufusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF9FCE7DDBBF38F5573AE573 /* RufusApp.swift */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXContainerItemProxy section */
-		5B1A89678269D84BAA84D177 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = E494247A98C6F2A77F5081C3 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 056044DA23C6CE4E2A82BBCD;
-			remoteInfo = RufusHelper;
-		};
-/* End PBXContainerItemProxy section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		C42432AE57CBE8AECAE2A7D9 /* Embed Dependencies */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 6;
-			files = (
-				118FA806CDA29CF54C6E4A0D /* RufusHelper in Embed Dependencies */,
-			);
-			name = "Embed Dependencies";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		D631052CBB87A498BE85F5A2 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = Contents/Library/LaunchDaemons;
-			dstSubfolderSpec = 1;
-			files = (
-				E056A8937A0901F3E4AD6240 /* com.huconn.rufus4mac.helper.plist in CopyFiles */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
-		11E5360FC33FD711D5830519 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		159736C417976813F7440314 /* rufus4mac */ = {isa = PBXFileReference; lastKnownFileType = folder; name = rufus4mac; path = .; sourceTree = SOURCE_ROOT; };
-		5FCB8BC3DFC9FE7841E2510E /* WriteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WriteService.swift; sourceTree = "<group>"; };
-		6E78B45154F95B7CABF38688 /* CLIWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIWriter.swift; sourceTree = "<group>"; };
 		6FC3B6AE39D7A5B5B76C2AF8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7BF079F0C6B1EA348EFE2FAC /* DiskListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskListViewModel.swift; sourceTree = "<group>"; };
-		8067C833724BA6CC8FEE1FAF /* HelperInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperInstaller.swift; sourceTree = "<group>"; };
-		8FE459047CF2873E8C72C9E0 /* com.huconn.rufus4mac.helper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = com.huconn.rufus4mac.helper.plist; sourceTree = "<group>"; };
-		99C99A1702E2234A2F1E496C /* WriteClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WriteClient.swift; sourceTree = "<group>"; };
-		B626F1A0FD6D5F0222CD54DF /* RufusHelper */ = {isa = PBXFileReference; includeInIndex = 0; path = RufusHelper; sourceTree = BUILT_PRODUCTS_DIR; };
 		C4035948535B6A00E87094F5 /* ImageSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSelection.swift; sourceTree = "<group>"; };
 		C5C265CB1D95590D9762302B /* RufusApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RufusApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9283A090DED74921A5C9759 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -81,23 +29,12 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		A8B98C779F9BE00399BAF9CB /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				D9BA4DC5B164F2B4A3A205D9 /* RufusCore in Frameworks */,
-				469105559BDA0FB7DE47556F /* DiskDiscovery in Frameworks */,
-				C93D97A90FFDB963C6CC4236 /* XPCProtocol in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		F7EA33C757580FE5B2A49591 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				77E06CA720367CAE36459F3A /* DiskDiscovery in Frameworks */,
-				5603028425CC2DC993702258 /* XPCProtocol in Frameworks */,
-				DDBB44490A097AE2B92950B2 /* RufusCore in Frameworks */,
+				5603028425CC2DC993702258 /* RufusCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -116,20 +53,8 @@
 			isa = PBXGroup;
 			children = (
 				C5C265CB1D95590D9762302B /* RufusApp.app */,
-				B626F1A0FD6D5F0222CD54DF /* RufusHelper */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		99A00A1680B89439F33ED52E /* Helper */ = {
-			isa = PBXGroup;
-			children = (
-				6E78B45154F95B7CABF38688 /* CLIWriter.swift */,
-				8FE459047CF2873E8C72C9E0 /* com.huconn.rufus4mac.helper.plist */,
-				11E5360FC33FD711D5830519 /* main.swift */,
-				5FCB8BC3DFC9FE7841E2510E /* WriteService.swift */,
-			);
-			path = Helper;
 			sourceTree = "<group>";
 		};
 		A7DBAEDA55096ECCAB0D97E0 /* App */ = {
@@ -139,10 +64,8 @@
 				C9283A090DED74921A5C9759 /* ContentView.swift */,
 				7BF079F0C6B1EA348EFE2FAC /* DiskListViewModel.swift */,
 				CD86C0CD50B072BC1B022B81 /* ElevatedWriter.swift */,
-				8067C833724BA6CC8FEE1FAF /* HelperInstaller.swift */,
 				C4035948535B6A00E87094F5 /* ImageSelection.swift */,
 				EF9FCE7DDBBF38F5573AE573 /* RufusApp.swift */,
-				99C99A1702E2234A2F1E496C /* WriteClient.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -151,7 +74,6 @@
 			isa = PBXGroup;
 			children = (
 				A7DBAEDA55096ECCAB0D97E0 /* App */,
-				99A00A1680B89439F33ED52E /* Helper */,
 				464C39B780B70A644584D172 /* Packages */,
 				6C5AD5843820AB1B31794F78 /* Products */,
 			);
@@ -160,46 +82,21 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		056044DA23C6CE4E2A82BBCD /* RufusHelper */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 1136A15FA6B8802989E8285F /* Build configuration list for PBXNativeTarget "RufusHelper" */;
-			buildPhases = (
-				4B2BC6E940E15EE852D417B2 /* Sources */,
-				A8B98C779F9BE00399BAF9CB /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = RufusHelper;
-			packageProductDependencies = (
-				2269175960B33680C330CADC /* RufusCore */,
-				F1DF6BAD588B99D94F11D710 /* DiskDiscovery */,
-				F1DD058F630347D66B95ECF7 /* XPCProtocol */,
-			);
-			productName = RufusHelper;
-			productReference = B626F1A0FD6D5F0222CD54DF /* RufusHelper */;
-			productType = "com.apple.product-type.tool";
-		};
 		4CA58B66DC00AE7B25CB70D8 /* RufusApp */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = B5C91FF6F54C79FAAB8921C1 /* Build configuration list for PBXNativeTarget "RufusApp" */;
 			buildPhases = (
 				093657A403A11A479D4A5C63 /* Sources */,
 				51E639202020DF192DAA3DF3 /* Resources */,
-				D631052CBB87A498BE85F5A2 /* CopyFiles */,
 				F7EA33C757580FE5B2A49591 /* Frameworks */,
-				C42432AE57CBE8AECAE2A7D9 /* Embed Dependencies */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				0B5B2F24A88BB90F9F4FE50C /* PBXTargetDependency */,
 			);
 			name = RufusApp;
 			packageProductDependencies = (
 				E37CFE9D0E3F7155A66C3947 /* DiskDiscovery */,
-				694E78800B9A8A7BB17C3B32 /* XPCProtocol */,
 				DFCC75988298AE57BBFCBCEA /* RufusCore */,
 			);
 			productName = RufusApp;
@@ -235,7 +132,6 @@
 			projectRoot = "";
 			targets = (
 				4CA58B66DC00AE7B25CB70D8 /* RufusApp */,
-				056044DA23C6CE4E2A82BBCD /* RufusHelper */,
 			);
 		};
 /* End PBXProject section */
@@ -259,32 +155,12 @@
 				336822C5D4BC5FC506FF482D /* ContentView.swift in Sources */,
 				0BDECFE0DCD81BA07D3A314A /* DiskListViewModel.swift in Sources */,
 				C7FB1424CA852C49E7FDD0C7 /* ElevatedWriter.swift in Sources */,
-				CF22719980D7F642A4549708 /* HelperInstaller.swift in Sources */,
 				23953896DE9F8D7AF8BEC472 /* ImageSelection.swift in Sources */,
 				FFDF8DD1C8CAE69949CA6EC6 /* RufusApp.swift in Sources */,
-				847E5FF8FCA009055951958C /* WriteClient.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		4B2BC6E940E15EE852D417B2 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				F5A4FF7AAF44B5E8B48FFF66 /* CLIWriter.swift in Sources */,
-				52E1CF4C9C2DB7B3A2F11068 /* WriteService.swift in Sources */,
-				DCBB4745CB231A72CC42F1EC /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		0B5B2F24A88BB90F9F4FE50C /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 056044DA23C6CE4E2A82BBCD /* RufusHelper */;
-			targetProxy = 5B1A89678269D84BAA84D177 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		5D86656A86589C117D6CBD80 /* Debug */ = {
@@ -349,20 +225,6 @@
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
-		};
-		87996B8CA78A71E016BC1807 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COMBINE_HIDPI_IMAGES = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.huconn.rufus4mac.helper;
-				SDKROOT = macosx;
-				SWIFT_VERSION = 6.0;
-			};
-			name = Release;
 		};
 		AC9F6B9F1B656BC2FB48A325 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -462,32 +324,9 @@
 			};
 			name = Debug;
 		};
-		E97BBA39492E53C73D208744 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COMBINE_HIDPI_IMAGES = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.huconn.rufus4mac.helper;
-				SDKROOT = macosx;
-				SWIFT_VERSION = 6.0;
-			};
-			name = Debug;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1136A15FA6B8802989E8285F /* Build configuration list for PBXNativeTarget "RufusHelper" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				E97BBA39492E53C73D208744 /* Debug */,
-				87996B8CA78A71E016BC1807 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
 		6CFFFF8DB49AAB8FCD3E0210 /* Build configuration list for PBXProject "rufus4mac" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -516,27 +355,11 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		2269175960B33680C330CADC /* RufusCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = RufusCore;
-		};
-		694E78800B9A8A7BB17C3B32 /* XPCProtocol */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = XPCProtocol;
-		};
 		DFCC75988298AE57BBFCBCEA /* RufusCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = RufusCore;
 		};
 		E37CFE9D0E3F7155A66C3947 /* DiskDiscovery */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = DiskDiscovery;
-		};
-		F1DD058F630347D66B95ECF7 /* XPCProtocol */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = XPCProtocol;
-		};
-		F1DF6BAD588B99D94F11D710 /* DiskDiscovery */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = DiskDiscovery;
 		};

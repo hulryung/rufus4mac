@@ -52,11 +52,10 @@ struct ContentView: View {
                 .disabled(image.imageURL == nil || diskVM.selected == nil || image.sha256Base64 == nil
                           || (diskVM.selected.map { !image.fits(disk: $0) } ?? true))
                 .keyboardShortcut(.defaultAction)
-
-            Spacer()
         }
-        .padding(24)
-        .frame(minWidth: 520, minHeight: 360)
+        .padding(20)
+        .frame(minWidth: 380, idealWidth: 420, maxWidth: 560, alignment: .topLeading)
+        .fixedSize(horizontal: false, vertical: true)
         .onAppear { diskVM.refresh() }
         .fileImporter(isPresented: $importing,
                       allowedContentTypes: imageTypes,

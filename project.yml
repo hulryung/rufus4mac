@@ -13,24 +13,11 @@ targets:
     platform: macOS
     sources:
       - path: App
-      - path: Helper
-        includes:
-          - "com.huconn.rufus4mac.helper.plist"
-        buildPhase:
-          copyFiles:
-            destination: wrapper
-            subpath: Contents/Library/LaunchDaemons
     dependencies:
       - package: RufusPkg
         product: DiskDiscovery
       - package: RufusPkg
-        product: XPCProtocol
-      - package: RufusPkg
         product: RufusCore
-      - target: RufusHelper
-        embed: true
-        copy:
-          destination: executables
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.huconn.rufus4mac
@@ -41,22 +28,4 @@ targets:
         INFOPLIST_KEY_NSRemovableVolumesUsageDescription: "rufus4mac writes bootable images to removable USB drives, which requires access to removable volumes."
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_HARDENED_RUNTIME: YES
-        SWIFT_VERSION: "6.0"
-  RufusHelper:
-    type: tool
-    platform: macOS
-    sources:
-      - path: Helper
-        excludes:
-          - "com.huconn.rufus4mac.helper.plist"
-    dependencies:
-      - package: RufusPkg
-        product: RufusCore
-      - package: RufusPkg
-        product: DiskDiscovery
-      - package: RufusPkg
-        product: XPCProtocol
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.huconn.rufus4mac.helper
         SWIFT_VERSION: "6.0"

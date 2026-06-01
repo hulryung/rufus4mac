@@ -7,12 +7,10 @@ let package = Package(
     products: [
         .library(name: "RufusCore", targets: ["RufusCore"]),
         .library(name: "DiskDiscovery", targets: ["DiskDiscovery"]),
-        .library(name: "XPCProtocol", targets: ["XPCProtocol"]),
     ],
     targets: [
         .target(name: "RufusCore"),
         .target(name: "DiskDiscovery"),
-        .target(name: "XPCProtocol"),
         .target(name: "TestSupport"),
         .testTarget(name: "RufusCoreTests", dependencies: ["RufusCore", "TestSupport", "DiskDiscovery"]),
         .testTarget(name: "DiskDiscoveryTests", dependencies: ["DiskDiscovery"]),
