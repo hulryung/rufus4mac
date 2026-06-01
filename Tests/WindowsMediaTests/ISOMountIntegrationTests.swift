@@ -24,5 +24,6 @@ final class ISOMountIntegrationTests: XCTestCase {
         defer { inspector.detach(mountPoint: info.mountPoint) }
         XCTAssertTrue(info.isWindows)
         XCTAssertEqual(info.installImageRelPath, "sources/install.wim")
+        XCTAssertEqual(info.installImageSizeBytes, 4096)
     }
 }

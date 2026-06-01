@@ -52,6 +52,11 @@ extension ISOInspector {
                                ["attach", "-nobrowse", "-readonly", "-plist", isoPath])
         guard r.status == 0 else { throw ISOInspectorError.mountFailed(r.stderr) }
         guard let mp = Self.firstMountPoint(fromPlist: r.stdout) else {
+            // Attach succeeded but produced no mount-point (unknown/corrupt FS):
+            // detach the attached device so we don't leak it, then fail.
+            if let dev = Self.firstDevEntry(fromPlist: r.stdout) {
+                _ = try? runner.run("/usr/bin/hdiutil", ["detach", dev, "-force"])
+            }
             throw ISOInspectorError.mountFailed("no mount-point in hdiutil output")
         }
         let d = Self.detectWindows(atMountedRoot: mp)
@@ -63,13 +68,27 @@ extension ISOInspector {
         _ = try? runner.run("/usr/bin/hdiutil", ["detach", mountPoint, "-force"])
     }
 
-    /// Parse the first `mount-point` value from `hdiutil attach -plist` output.
-    static func firstMountPoint(fromPlist plist: String) -> String? {
+    private static func systemEntities(fromPlist plist: String) -> [[String: Any]] {
         guard let data = plist.data(using: .utf8),
               let obj = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil),
               let dict = obj as? [String: Any],
-              let entities = dict["system-entities"] as? [[String: Any]] else { return nil }
-        for e in entities { if let mp = e["mount-point"] as? String, !mp.isEmpty { return mp } }
+              let raw = dict["system-entities"] as? [Any] else { return [] }
+        return raw.compactMap { $0 as? [String: Any] }
+    }
+
+    /// First non-empty `mount-point` in the hdiutil attach plist.
+    static func firstMountPoint(fromPlist plist: String) -> String? {
+        for e in systemEntities(fromPlist: plist) {
+            if let mp = e["mount-point"] as? String, !mp.isEmpty { return mp }
+        }
+        return nil
+    }
+
+    /// First non-empty `dev-entry` (e.g. /dev/disk9) in the hdiutil attach plist.
+    static func firstDevEntry(fromPlist plist: String) -> String? {
+        for e in systemEntities(fromPlist: plist) {
+            if let d = e["dev-entry"] as? String, !d.isEmpty { return d }
+        }
         return nil
     }
 }
