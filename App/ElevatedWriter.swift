@@ -1,6 +1,11 @@
 import Foundation
 import Combine
+import CryptoKit
 
+/// Writes an image to a removable disk using Apple's `authopen` (setuid-root, entitled
+/// to open removable volumes on behalf of the responsible app). This avoids a persistent
+/// privileged helper and Full Disk Access: the app is the responsible process, so the user
+/// gets an inline authorization prompt rather than a manual settings step.
 @MainActor
 final class ElevatedWriter: NSObject, ObservableObject {
     @Published var phase: String = ""
@@ -8,97 +13,116 @@ final class ElevatedWriter: NSObject, ObservableObject {
     @Published var finished: Bool = false
     @Published var errorText: String?
 
-    private var pollTimer: Timer?
-    private var logPath: String = ""
+    private let chunkSize = 4 * 1024 * 1024
+    private let authopen = "/usr/libexec/authopen"
 
     func startWrite(imagePath: String, bsdName: String, sha256Base64: String) {
         phase = "preparing"; fraction = 0; finished = false; errorText = nil
-
-        let helper = Bundle.main.bundlePath + "/Contents/MacOS/RufusHelper"
-        logPath = NSTemporaryDirectory() + "rufus-\(UUID().uuidString).log"
-        FileManager.default.createFile(atPath: logPath, contents: nil)
-        let captured = logPath
-        // The app holds (powerbox) access to the user-picked file; a separately
-        // elevated helper does NOT, and cannot read TCC-protected folders like
-        // ~/Downloads. So stage the image into /tmp (world-readable; the root helper
-        // can read it), point the helper there, and delete it afterward.
-        let stagedPath = "/tmp/rufus-stage-\(UUID().uuidString).img"
-
-        // Poll the log file for progress while the elevated command runs.
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.poll() }
-        }
-
-        Task.detached {
-            // Stage (copy) the selected image where the root helper can read it.
-            do {
-                try? FileManager.default.removeItem(atPath: stagedPath)
-                try FileManager.default.copyItem(atPath: imagePath, toPath: stagedPath)
-            } catch {
-                await MainActor.run {
-                    self.pollTimer?.invalidate(); self.pollTimer = nil
-                    self.errorText = "Could not prepare image: \(error)"
-                    self.finished = true
-                }
-                return
-            }
-
-            let shell = "'\(helper)' writepriv '\(stagedPath)' \(bsdName) '\(sha256Base64)' > '\(captured)' 2>&1"
-            let escaped = shell
-                .replacingOccurrences(of: "\\", with: "\\\\")
-                .replacingOccurrences(of: "\"", with: "\\\"")
-            let script = "do shell script \"\(escaped)\" with administrator privileges"
-
-            let p = Process()
-            p.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-            p.arguments = ["-e", script]
-            let errPipe = Pipe()
-            p.standardError = errPipe
-            var runErr: String?
-            do { try p.run(); p.waitUntilExit() } catch { runErr = "\(error)" }
-            let status = p.terminationStatus
-            let osaErr = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(),
-                                encoding: .utf8) ?? ""
-            try? FileManager.default.removeItem(atPath: stagedPath)
-            await MainActor.run {
-                self.finish(status: status, runError: runErr, osaErr: osaErr, log: captured)
-            }
+        let total = ((try? FileManager.default.attributesOfItem(atPath: imagePath))?[.size]
+                     as? NSNumber)?.uint64Value ?? 0
+        Task.detached { [weak self] in
+            await self?.run(imagePath: imagePath, bsdName: bsdName,
+                            expectedBase64: sha256Base64, total: total)
         }
     }
 
-    private func poll() {
-        guard let text = try? String(contentsOfFile: logPath, encoding: .utf8) else { return }
-        // Last PROGRESS line wins.
-        for line in text.split(separator: "\n").reversed() {
-            let f = line.split(separator: "\t")
-            if f.count == 4, f[0] == "PROGRESS",
-               let done = Double(f[2]), let total = Double(f[3]) {
-                phase = String(f[1])
-                fraction = total == 0 ? 0 : done / total
-                return
-            }
+    private nonisolated func set(phase: String? = nil, fraction: Double? = nil) async {
+        await MainActor.run {
+            if let phase { self.phase = phase }
+            if let fraction { self.fraction = fraction }
         }
     }
+    private nonisolated func fail(_ msg: String) async {
+        await MainActor.run { self.errorText = msg; self.finished = true }
+    }
+    private nonisolated func done() async {
+        await MainActor.run { self.fraction = 1; self.finished = true }
+    }
 
-    private func finish(status: Int32, runError: String?, osaErr: String, log: String) {
-        pollTimer?.invalidate(); pollTimer = nil
-        let text = (try? String(contentsOfFile: log, encoding: .utf8)) ?? ""
-        let lastLines = text.split(separator: "\n")
-        if lastLines.last == "OK" && status == 0 {
-            fraction = 1; finished = true; return
+    private nonisolated func run(imagePath: String, bsdName: String,
+                                 expectedBase64: String, total: UInt64) async {
+        let raw = "/dev/r\(bsdName)"
+
+        // 1) Unmount the whole disk (removable media unmounts without root).
+        if let err = Self.runProcess("/usr/sbin/diskutil", ["unmountDisk", "/dev/\(bsdName)"]) {
+            await fail("Could not unmount disk: \(err)"); return
         }
-        // Find an ERR line, else fall back to osascript error / generic.
-        if let err = lastLines.first(where: { $0.hasPrefix("ERR\t") }) {
-            errorText = String(err.dropFirst(4))
-        } else if let runError {
-            errorText = runError
-        } else if osaErr.contains("-128") || osaErr.lowercased().contains("cancel") {
-            errorText = "Authorization cancelled."
-        } else if !osaErr.isEmpty {
-            errorText = osaErr.trimmingCharacters(in: .whitespacesAndNewlines)
-        } else {
-            errorText = "Write failed (exit \(status))."
+
+        // 2) Write: stream the (sector-padded) image into `authopen -w <raw>`.
+        await set(phase: "writing", fraction: 0)
+        let auth = Process()
+        auth.executableURL = URL(fileURLWithPath: authopen)
+        auth.arguments = ["-w", raw]
+        let stdinPipe = Pipe(); auth.standardInput = stdinPipe
+        let errPipe = Pipe(); auth.standardError = errPipe
+        do { try auth.run() } catch { await fail("authopen launch failed: \(error)"); return }
+
+        guard let src = FileHandle(forReadingAtPath: imagePath) else {
+            try? stdinPipe.fileHandleForWriting.close(); auth.terminate()
+            await fail("Cannot read image file."); return
         }
-        finished = true
+        let w = stdinPipe.fileHandleForWriting
+        var written: UInt64 = 0
+        do {
+            while true {
+                let chunk = try src.read(upToCount: chunkSize) ?? Data()
+                if chunk.isEmpty { break }
+                try w.write(contentsOf: chunk)
+                written += UInt64(chunk.count)
+                await set(fraction: total == 0 ? 0 : Double(written) / Double(total))
+            }
+            // Raw devices require whole-sector writes; pad the final partial sector.
+            let rem = Int(written % 512)
+            if rem != 0 { try w.write(contentsOf: Data(count: 512 - rem)) }
+            try w.close()
+        } catch {
+            try? w.close(); try? src.close(); auth.waitUntilExit()
+            await fail("Write failed: \(error)"); return
+        }
+        try? src.close()
+        auth.waitUntilExit()
+        if auth.terminationStatus != 0 {
+            let e = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            await fail("authopen write failed (exit \(auth.terminationStatus)): "
+                       + e.trimmingCharacters(in: .whitespacesAndNewlines))
+            return
+        }
+
+        // 3) Verify: read back `total` bytes via `authopen <raw>` and compare SHA-256.
+        guard let expected = Data(base64Encoded: expectedBase64) else { await done(); return }
+        await set(phase: "verifying", fraction: 0)
+        let vr = Process()
+        vr.executableURL = URL(fileURLWithPath: authopen)
+        vr.arguments = [raw]   // read mode: device contents -> stdout
+        let outPipe = Pipe(); vr.standardOutput = outPipe
+        vr.standardError = Pipe()
+        do { try vr.run() } catch { await fail("verify launch failed: \(error)"); return }
+        let rfh = outPipe.fileHandleForReading
+        var hasher = SHA256(); var readBytes: UInt64 = 0
+        while readBytes < total {
+            let want = Int(min(UInt64(chunkSize), total - readBytes))
+            let data = (try? rfh.read(upToCount: want)) ?? Data()
+            if data.isEmpty { break }
+            hasher.update(data: data)
+            readBytes += UInt64(data.count)
+            await set(fraction: Double(readBytes) / Double(total))
+        }
+        vr.terminate(); vr.waitUntilExit()
+        if readBytes < total || Data(hasher.finalize()) != expected {
+            await fail("Verification failed (data mismatch)."); return
+        }
+        await done()
+    }
+
+    /// Run a process to completion; returns nil on success or an error string on failure.
+    private nonisolated static func runProcess(_ launch: String, _ args: [String]) -> String? {
+        let p = Process(); p.executableURL = URL(fileURLWithPath: launch); p.arguments = args
+        let err = Pipe(); p.standardError = err; p.standardOutput = Pipe()
+        do { try p.run(); p.waitUntilExit() } catch { return "\(error)" }
+        if p.terminationStatus != 0 {
+            return String(data: err.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? "exit \(p.terminationStatus)"
+        }
+        return nil
     }
 }

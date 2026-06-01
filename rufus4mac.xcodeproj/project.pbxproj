@@ -358,6 +358,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSUIElement = NO;
+				INFOPLIST_KEY_NSRemovableVolumesUsageDescription = "rufus4mac writes bootable images to removable USB drives, which requires access to removable volumes.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -434,6 +435,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSUIElement = NO;
+				INFOPLIST_KEY_NSRemovableVolumesUsageDescription = "rufus4mac writes bootable images to removable USB drives, which requires access to removable volumes.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
