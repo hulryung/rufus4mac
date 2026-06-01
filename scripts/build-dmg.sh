@@ -39,6 +39,9 @@ xcodebuild -project rufus4mac.xcodeproj -scheme RufusApp -configuration Release 
     build
 cp -R "$DERIVED/Build/Products/Release/RufusApp.app" "$APP"
 
+echo "==> Bundling wimlib-imagex"
+bash scripts/bundle-wimlib.sh "$APP/Contents/Resources/wimlib"
+
 # Sign the app bundle with hardened runtime + a secure timestamp. There is no
 # embedded privileged helper — the privileged write goes through Apple's `authopen`.
 echo "==> Signing app bundle"
