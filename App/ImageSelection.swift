@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import RufusCore
 import DiskDiscovery
+import SystemTools
 import WindowsMedia
 
 @MainActor

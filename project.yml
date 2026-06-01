@@ -20,6 +20,8 @@ targets:
         product: RufusCore
       - package: RufusPkg
         product: WindowsMedia
+      - package: RufusPkg
+        product: DiskFormat
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.huconn.rufus4mac

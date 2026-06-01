@@ -1,16 +1,21 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import DiskDiscovery
+import DiskFormat
 
 struct ContentView: View {
     @StateObject private var diskVM = DiskListViewModel()
     @StateObject private var image = ImageSelection()
     @StateObject private var writer = ElevatedWriter()
     @StateObject private var winWriter = WindowsWriter()
+    @StateObject private var formatRunner = FormatRunner()
     @State private var showConfirm = false
     @State private var importing = false
     @AppStorage("verifyAfterWrite") private var verifyAfterWrite = true
     @AppStorage("bypassWin11") private var bypassWin11 = true
+    @AppStorage("fmtScheme") private var fmtSchemeRaw = FormatOptions.PartitionScheme.gpt.rawValue
+    @AppStorage("fmtFileSystem") private var fmtFSRaw = FormatOptions.FileSystem.exfat.rawValue
+    @AppStorage("fmtLabel") private var fmtLabel = "RUFUS4MAC"
 
     /// Brand accent — matches the app icon's orange.
     private let accent = Color(red: 0.90, green: 0.32, blue: 0.06)
@@ -20,15 +25,20 @@ struct ContentView: View {
         return !image.fits(disk: disk)
     }
 
+    /// Format-only mode: no image selected → the primary action formats the disk.
+    private var formatMode: Bool { image.imageURL == nil }
+
     // Active-writer accessors: route to whichever writer is relevant for the selected image type.
-    private var activePhase: String { image.isWindows ? winWriter.phase : writer.phase }
-    private var activeFraction: Double { image.isWindows ? winWriter.fraction : writer.fraction }
-    private var activeFinished: Bool { image.isWindows ? winWriter.finished : writer.finished }
-    private var activeError: String? { image.isWindows ? winWriter.errorText : writer.errorText }
-    private var activeRunning: Bool { image.isWindows ? winWriter.isRunning : writer.isRunning }
+    private var activePhase: String { formatMode ? formatRunner.phase : (image.isWindows ? winWriter.phase : writer.phase) }
+    private var activeFraction: Double { formatMode ? formatRunner.fraction : (image.isWindows ? winWriter.fraction : writer.fraction) }
+    private var activeFinished: Bool { formatMode ? formatRunner.finished : (image.isWindows ? winWriter.finished : writer.finished) }
+    private var activeError: String? { formatMode ? formatRunner.errorText : (image.isWindows ? winWriter.errorText : writer.errorText) }
+    private var activeRunning: Bool { formatMode ? formatRunner.isRunning : (image.isWindows ? winWriter.isRunning : writer.isRunning) }
 
     private var canWrite: Bool {
-        guard image.imageURL != nil, let disk = diskVM.selected, !activeRunning, !image.hashing else { return false }
+        guard diskVM.selected != nil, !activeRunning, !image.hashing else { return false }
+        if formatMode { return true }
+        guard let disk = diskVM.selected else { return false }
         if image.imageSize > 0 && !image.fits(disk: disk) { return false }
         return image.isWindows ? true : (image.sha256Base64 != nil)
     }
@@ -64,6 +74,24 @@ struct ContentView: View {
                 }
             }
 
+            if formatMode {
+                field(title: "Format options", systemImage: "gearshape") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Picker("Partition scheme", selection: $fmtSchemeRaw) {
+                            ForEach(FormatOptions.PartitionScheme.allCases, id: \.rawValue) {
+                                Text($0.rawValue).tag($0.rawValue)
+                            }
+                        }
+                        Picker("File system", selection: $fmtFSRaw) {
+                            ForEach(FormatOptions.FileSystem.allCases, id: \.rawValue) {
+                                Text($0.rawValue).tag($0.rawValue)
+                            }
+                        }
+                        TextField("Volume label", text: $fmtLabel)
+                    }
+                }
+            }
+
             if image.isWindows {
                 field(title: "Windows install media", systemImage: "window.shade.closed") {
                     Toggle("Bypass Windows 11 compatibility checks", isOn: $bypassWin11)
@@ -80,14 +108,15 @@ struct ContentView: View {
                 statusRow
             }
 
-            if !image.isWindows {
+            if !image.isWindows && !formatMode {
                 Toggle("Verify after writing", isOn: $verifyAfterWrite)
                     .toggleStyle(.checkbox).font(.callout)
                     .disabled(activeRunning)
             }
 
             Button { showConfirm = true } label: {
-                Label("Write", systemImage: "arrow.down.to.line")
+                Label(formatMode ? "Format" : "Write",
+                      systemImage: formatMode ? "eraser" : "arrow.down.to.line")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent).tint(accent).controlSize(.large)
@@ -110,7 +139,11 @@ struct ContentView: View {
             Button("Cancel", role: .cancel) {}
             Button("Erase and Write", role: .destructive) { startWrite() }
         } message: {
-            Text("All data on /dev/\(diskVM.selected?.bsdName ?? "") (\(diskVM.selected?.displaySize ?? "")) will be permanently destroyed.")
+            if formatMode {
+                Text("Erase and format /dev/\(diskVM.selected?.bsdName ?? "") as \(fmtFSRaw)? All data will be permanently destroyed.")
+            } else {
+                Text("All data on /dev/\(diskVM.selected?.bsdName ?? "") (\(diskVM.selected?.displaySize ?? "")) will be permanently destroyed.")
+            }
         }
     }
 
@@ -168,12 +201,19 @@ struct ContentView: View {
     }
 
     private func startWrite() {
-        guard let url = image.imageURL, let disk = diskVM.selected else { return }
+        guard let disk = diskVM.selected else { return }
+        if formatMode {
+            let scheme = FormatOptions.PartitionScheme(rawValue: fmtSchemeRaw) ?? .gpt
+            let fs = FormatOptions.FileSystem(rawValue: fmtFSRaw) ?? .exfat
+            formatRunner.start(bsdName: disk.bsdName,
+                               options: .init(scheme: scheme, fileSystem: fs, label: fmtLabel))
+            return
+        }
+        guard let url = image.imageURL else { return }
         if image.isWindows {
             winWriter.start(isoPath: url.path, bsdName: disk.bsdName, bypassWin11: bypassWin11)
         } else if let hash = image.sha256Base64 {
-            writer.startWrite(imagePath: url.path, bsdName: disk.bsdName, sha256Base64: hash,
-                              verify: verifyAfterWrite)
+            writer.startWrite(imagePath: url.path, bsdName: disk.bsdName, sha256Base64: hash, verify: verifyAfterWrite)
         }
     }
 }
