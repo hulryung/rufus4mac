@@ -1,5 +1,5 @@
 import XCTest
-@testable import WindowsMedia
+import SystemTools
 
 final class ProcessRunnerTests: XCTestCase {
     func testRunsAndCapturesStdoutAndStatus() throws {

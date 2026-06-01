@@ -1,4 +1,5 @@
 import Foundation
+import SystemTools
 
 public struct ISOInfo: Sendable {
     public let isWindows: Bool

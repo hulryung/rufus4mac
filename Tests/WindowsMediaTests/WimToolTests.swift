@@ -1,4 +1,5 @@
 import XCTest
+import SystemTools
 @testable import WindowsMedia
 
 final class FakeRunner: ProcessRunner, @unchecked Sendable {

@@ -4,6 +4,9 @@ public struct ProcessResult: Sendable {
     public let status: Int32
     public let stdout: String
     public let stderr: String
+    public init(status: Int32, stdout: String, stderr: String) {
+        self.status = status; self.stdout = stdout; self.stderr = stderr
+    }
 }
 
 /// Runs an external process to completion. Injectable so orchestration can be unit-tested.

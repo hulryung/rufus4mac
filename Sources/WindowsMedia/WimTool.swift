@@ -1,4 +1,5 @@
 import Foundation
+import SystemTools
 
 public struct WimToolError: Error, CustomStringConvertible {
     public let message: String

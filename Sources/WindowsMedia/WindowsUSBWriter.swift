@@ -1,4 +1,5 @@
 import Foundation
+import SystemTools
 
 public final class WindowsUSBWriter {
     let runner: ProcessRunner
