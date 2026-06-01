@@ -21,7 +21,11 @@ func runWritePriv(imagePath: String, bsdName: String, sha256Base64: String) -> N
         guard source.size <= target.sizeBytes else {
             throw WriteError.imageLargerThanTarget(imageSize: source.size, targetSize: target.sizeBytes)
         }
-        try DiskDiscovery.unmountDisk(bsdName: bsdName)
+        // Use `diskutil unmountDisk` (we run as root) rather than DiskArbitration's
+        // DADiskUnmount: it both unmounts every volume AND releases the whole disk so
+        // the raw device can be opened for writing. A plain DADiskUnmount leaves the
+        // device claimed and open(/dev/rdiskN, O_WRONLY) fails with EPERM.
+        try diskutilUnmountDisk(bsdName)
         let engine = WriteEngine()
         let raw = "/dev/r\(bsdName)"
         let writer = try DeviceBlockWriter(devicePath: raw)
@@ -39,5 +43,24 @@ func runWritePriv(imagePath: String, bsdName: String, sha256Base64: String) -> N
     } catch {
         emit("ERR\t\(error)")
         exit(1)
+    }
+}
+
+/// Unmount all volumes on a whole disk and release it for raw access, via
+/// `/usr/sbin/diskutil unmountDisk`. Runs as root (no sudo). Throws on failure.
+private func diskutilUnmountDisk(_ bsdName: String) throws {
+    let p = Process()
+    p.executableURL = URL(fileURLWithPath: "/usr/sbin/diskutil")
+    p.arguments = ["unmountDisk", "/dev/\(bsdName)"]
+    let pipe = Pipe()
+    p.standardOutput = pipe
+    p.standardError = pipe
+    try p.run()
+    p.waitUntilExit()
+    if p.terminationStatus != 0 {
+        let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        throw NSError(domain: "rufus4mac.helper", code: Int(p.terminationStatus),
+                      userInfo: [NSLocalizedDescriptionKey:
+                        "diskutil unmountDisk failed: \(out.trimmingCharacters(in: .whitespacesAndNewlines))"])
     }
 }
