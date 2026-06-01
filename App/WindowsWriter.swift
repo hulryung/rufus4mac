@@ -11,9 +11,9 @@ final class WindowsWriter: NSObject, ObservableObject {
     @Published var isRunning: Bool = false
     @Published var errorText: String?
 
-    func start(isoPath: String, bsdName: String, bypassWin11: Bool) {
+    func start(isoPath: String, bsdName: String, customization: WindowsCustomization) {
         phase = "preparing"; fraction = 0; finished = false; isRunning = true; errorText = nil
-        Task.detached { [weak self] in await self?.run(isoPath: isoPath, bsdName: bsdName, bypassWin11: bypassWin11) }
+        Task.detached { [weak self] in await self?.run(isoPath: isoPath, bsdName: bsdName, customization: customization) }
     }
 
     private nonisolated func set(_ phase: String, _ fraction: Double) async {
@@ -42,7 +42,7 @@ final class WindowsWriter: NSObject, ObservableObject {
         return nil
     }
 
-    private nonisolated func run(isoPath: String, bsdName: String, bypassWin11: Bool) async {
+    private nonisolated func run(isoPath: String, bsdName: String, customization: WindowsCustomization) async {
         let runner = SystemProcessRunner()
         let inspector = ISOInspector(runner: runner)
         let bundledDir = Bundle.main.resourceURL?.appendingPathComponent("wimlib").path
@@ -65,9 +65,9 @@ final class WindowsWriter: NSObject, ObservableObject {
                                     installImageRelPath: rel,
                                     installImageSizeBytes: info.installImageSizeBytes,
                                     progress: { ph, fr in Task { await self.set(ph, fr) } })
-            if bypassWin11 {
-                await set("bypassing", 1)
-                try Win11Bypass.apply(usbRoot: mp)
+            if !customization.isEmpty {
+                await set("customizing", 1)
+                try WindowsCustomizer.apply(usbRoot: mp, options: customization)
             }
             _ = try? runner.run("/usr/sbin/diskutil", ["eject", "/dev/\(bsdName)"])
             await MainActor.run { self.fraction = 1; self.finished = true; self.isRunning = false }
