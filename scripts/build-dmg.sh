@@ -42,8 +42,17 @@ cp -R "$DERIVED/Build/Products/Release/RufusApp.app" "$APP"
 echo "==> Bundling wimlib-imagex"
 bash scripts/bundle-wimlib.sh "$APP/Contents/Resources/wimlib"
 
-# Sign the app bundle with hardened runtime + a secure timestamp. There is no
-# embedded privileged helper — the privileged write goes through Apple's `authopen`.
+# Sign inside-out: the bundled wimlib binary + dylib were mutated by install_name_tool
+# (which invalidates their signatures), so they MUST be re-signed individually with the
+# hardened runtime before the app bundle is sealed — otherwise AMFI refuses to exec the
+# bundled wimlib-imagex in the distributed (hardened-runtime) app.
+echo "==> Signing bundled wimlib (inside-out)"
+codesign --force --options runtime --timestamp --sign "$IDENTITY" \
+    "$APP/Contents/Resources/wimlib/"*.dylib
+codesign --force --options runtime --timestamp --sign "$IDENTITY" \
+    "$APP/Contents/Resources/wimlib/wimlib-imagex"
+
+# There is no embedded privileged helper — the privileged write goes through Apple's `authopen`.
 echo "==> Signing app bundle"
 codesign --force --options runtime --timestamp \
     --sign "$IDENTITY" "$APP"
