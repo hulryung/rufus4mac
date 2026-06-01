@@ -34,3 +34,26 @@ so the only prompt you should see is a standard authorization (password) dialog.
   into `authopen -w /dev/rdiskN`; the device is read back through `authopen` for verification.
 - `~/Downloads` and other TCC-protected locations work because the app — not a detached
   helper — opens the source file.
+
+---
+
+## Phase 2 — Windows install USB (manual)
+
+Prereqs: a Windows 10/11 ISO, an expendable ≥ 8 GB USB, `wimlib` available (bundled in a release
+build, or `brew install wimlib` for a dev run).
+
+1. [ ] Select the Windows ISO → after hashing, the **"Windows install media"** section appears
+       (auto-detected). The "Verify after writing" toggle is hidden for Windows.
+2. [ ] Leave **"Bypass Windows 11 compatibility checks"** on for Win11-incompatible hardware.
+3. [ ] Pick the USB → **Write** → confirm. Watch **Formatting → Copying → Splitting** (only if
+       `install.wim` > 4 GB) → **(Bypassing)** → **Done**. (Formatting via `diskutil` needs no password.)
+4. [ ] Inspect the USB: a FAT32 volume containing `efi/boot/bootx64.efi` and either
+       `sources/install.wim` (≤ 4 GB) or `sources/install.swm` (+ `install2.swm`, … when split).
+       With bypass on: `sources/appraiserres.dll` is 0 bytes and `autounattend.xml` exists at the root.
+5. [ ] Boot a UEFI PC from it → Windows Setup starts. On Win11-incompatible hardware, Setup proceeds
+       past the "This PC can't run Windows 11" check.
+
+Failure paths:
+6. [ ] A non-Windows ISO still shows the Phase 1 raw/DD flow (no Windows section).
+7. [ ] An oversized non-`.wim` install image (e.g. a > 4 GB `install.esd`) fails fast with a clear
+       "not supported" error rather than a cryptic FAT32 copy failure.

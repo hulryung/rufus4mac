@@ -102,12 +102,19 @@ Or just `open rufus4mac.xcodeproj` in Xcode and run the **RufusApp** scheme.
 
 ## Roadmap
 
-| Phase | Scope |
-|-------|-------|
-| **1 — MVP (current)** | Device selection, image selection, raw/DD write to USB, verify |
-| **2 — Windows media** | install.wim split for FAT32, UEFI:NTFS, Windows 11 TPM/Secure Boot bypass |
-| **3 — Full format options** | MBR/GPT, FAT32/exFAT/NTFS formatting, cluster size, labels, bad-block check |
-| **4 — Extras** | ISO downloader, Linux persistence, checksums, localization |
+| Phase | Scope | Status |
+|-------|-------|--------|
+| **1 — MVP** | Device selection, image selection, raw/DD write to USB, verify | ✅ done |
+| **2 — Windows media** | UEFI Windows 10/11 install USB: GPT/FAT32 + `install.wim` split (bundled `wimlib`), optional Windows 11 TPM/Secure Boot/RAM bypass | ✅ done |
+| **3 — Full format options** | MBR/GPT, FAT32/exFAT/NTFS formatting, cluster size, labels, bad-block check | planned |
+| **4 — Extras** | ISO downloader, Linux persistence, checksums, localization | planned |
+
+**Windows ISOs are auto-detected** (`sources/install.wim`/`install.esd` + UEFI boot files). They're
+written as a GPT/FAT32 volume with files copied from the mounted ISO; an `install.wim` over 4 GB is
+split into `install.swm` via a bundled `wimlib-imagex` (so it fits FAT32 yet Windows Setup still
+reads it). Enable "Bypass Windows 11 compatibility checks" to zero `appraiserres.dll` and add an
+`autounattend.xml` with the LabConfig bypass keys. Formatting uses `diskutil` (no elevation needed
+for removable media).
 
 ## License
 
