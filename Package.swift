@@ -9,6 +9,7 @@ let package = Package(
         .library(name: "DiskDiscovery", targets: ["DiskDiscovery"]),
         .library(name: "SystemTools", targets: ["SystemTools"]),
         .library(name: "WindowsMedia", targets: ["WindowsMedia"]),
+        .library(name: "DiskFormat", targets: ["DiskFormat"]),
     ],
     targets: [
         .target(name: "RufusCore"),
@@ -16,6 +17,8 @@ let package = Package(
         .target(name: "TestSupport"),
         .target(name: "SystemTools"),
         .target(name: "WindowsMedia", dependencies: ["SystemTools"]),
+        .target(name: "DiskFormat", dependencies: ["SystemTools"]),
+        .testTarget(name: "DiskFormatTests", dependencies: ["DiskFormat"]),
         .testTarget(name: "RufusCoreTests", dependencies: ["RufusCore", "TestSupport", "DiskDiscovery"]),
         .testTarget(name: "DiskDiscoveryTests", dependencies: ["DiskDiscovery"]),
         .testTarget(name: "SystemToolsTests", dependencies: ["SystemTools"]),
