@@ -27,13 +27,16 @@ and notarized by Apple, so it launches without Gatekeeper warnings.
 For Windows ISOs, an optional **"Bypass Windows 11 compatibility checks"** toggle handles
 TPM/Secure Boot/RAM/CPU requirements.
 
+**Format mode:** select no image and the button becomes **Format** — erase a USB as **exFAT** or
+**FAT32** with **MBR/GPT** and a volume label.
+
 ## Roadmap
 
 | Phase | Scope | Status |
 |-------|-------|--------|
 | **1 — MVP** | Device + image selection, raw/DD write to USB, verify | ✅ done |
 | **2 — Windows media** | UEFI Windows 10/11 install USB (FAT32 + `install.wim` split, Win11 bypass) | ✅ done |
-| **3 — Format options** | MBR/GPT, FAT32/exFAT/NTFS formatting, cluster size, labels, bad-block check | planned |
+| **3 — Format options** | Format-only mode: MBR/GPT + exFAT/FAT32 + volume label (NTFS/cluster/bad-block deferred) | ✅ done |
 | **4 — Extras** | ISO downloader, Linux persistence, checksums, localization | planned |
 
 ## Docs

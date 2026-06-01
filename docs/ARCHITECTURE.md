@@ -63,16 +63,31 @@ usually larger than FAT32's 4 GB per-file limit. So:
 
 Design: `docs/superpowers/specs/2026-06-01-rufus4mac-phase2-windows-design.md`.
 
+### Format mode
+
+Select **no image** and the primary button becomes **Format**: the `DiskFormat` module's
+`DiskFormatter` runs `diskutil eraseDisk <personality> <label> <scheme> /dev/<bsd>` to quick-format
+the USB with the chosen options. `FormatOptions` maps the UI choices — partition scheme (MBR/GPT),
+file system (exFAT → `ExFAT`, FAT32 → `MS-DOS FAT32`), and a normalized volume label
+(uppercase/`A–Z0–9`, length-capped, default `RUFUS4MAC`). FAT32 + exFAT only (both `diskutil`-native);
+NTFS, Mac filesystems, full/zero erase, bad-block scan, and custom cluster size are deferred. No
+`sudo` — `diskutil` formats removable media as the console user. When an image *is* selected, the
+write path determines the on-disk format, so the format options are hidden.
+
+Design: `docs/superpowers/specs/2026-06-01-rufus4mac-phase3-format-design.md`.
+
 ## Repository layout
 
 ```
 Package.swift            Swift package: the pure-logic core (no Xcode needed)
 Sources/RufusCore/       WriteEngine, device/file block I/O, SHA-256 verify
 Sources/DiskDiscovery/   removableDisks() (boot disk excluded), unmountDisk(), DiskInfo
-Sources/WindowsMedia/    ISOInspector, WimTool, WindowsUSBWriter, Win11Bypass, ProcessRunner
+Sources/SystemTools/     ProcessRunner / ProcessResult / SystemProcessRunner (shared)
+Sources/WindowsMedia/    ISOInspector, WimTool, WindowsUSBWriter, Win11Bypass
+Sources/DiskFormat/      FormatOptions, DiskFormatter (diskutil quick format)
 Sources/TestSupport/     hdiutil-backed test fixtures
 Tests/                   unit + integration tests (incl. real-device, unprivileged)
-App/                     SwiftUI app — ContentView, view-models, ElevatedWriter (raw/DD), WindowsWriter
+App/                     SwiftUI app — ContentView, view-models, ElevatedWriter (raw/DD), WindowsWriter, FormatRunner
 project.yml              xcodegen project definition
 rufus4mac.xcodeproj      generated Xcode project (run `xcodegen generate` to refresh)
 scripts/make-icon.swift  regenerates the app icon (AppKit/CoreGraphics, no deps)
@@ -86,7 +101,7 @@ docs/                    architecture, manual test checklist, design specs & pla
 Core library (no Xcode required):
 
 ```sh
-swift test            # 43 tests
+swift test            # 53 tests
 swift build
 ```
 

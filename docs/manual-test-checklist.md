@@ -57,3 +57,17 @@ Failure paths:
 6. [ ] A non-Windows ISO still shows the Phase 1 raw/DD flow (no Windows section).
 7. [ ] An oversized non-`.wim` install image (e.g. a > 4 GB `install.esd`) fails fast with a clear
        "not supported" error rather than a cryptic FAT32 copy failure.
+
+---
+
+## Phase 3 — Format-only (manual)
+
+1. [ ] Launch with **no image** selected → the **Format options** section appears (partition scheme,
+       file system, volume label) and the primary button reads **Format**. ("Verify after writing" is hidden.)
+2. [ ] Pick a USB, choose **exFAT + GPT**, set a label → **Format** → confirm ("Erase and Format") →
+       status reaches **Done** (no password prompt for removable media).
+3. [ ] Verify in Disk Utility / `diskutil list`: GPT scheme, an exFAT volume with the label.
+4. [ ] Repeat with **FAT32 + MBR**; confirm `FDisk_partition_scheme` + a FAT volume with the label.
+5. [ ] Selecting an image hides the Format options and restores the Write flow.
+6. [ ] A label with spaces/symbols/lowercase is normalized (uppercased, filtered, length-capped);
+       an empty label becomes `RUFUS4MAC`.
