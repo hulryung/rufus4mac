@@ -19,6 +19,8 @@ targets:
       - package: RufusPkg
         product: RufusCore
       - package: RufusPkg
+        product: SystemTools
+      - package: RufusPkg
         product: WindowsMedia
       - package: RufusPkg
         product: DiskFormat
