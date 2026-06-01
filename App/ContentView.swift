@@ -9,52 +9,68 @@ struct ContentView: View {
     @State private var showConfirm = false
     @State private var importing = false
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("rufus4mac").font(.largeTitle.bold())
+    /// Brand accent — matches the app icon's orange.
+    private let accent = Color(red: 0.90, green: 0.32, blue: 0.06)
 
-            GroupBox("Image") {
-                HStack {
+    private var oversize: Bool {
+        guard let disk = diskVM.selected, image.imageSize > 0 else { return false }
+        return !image.fits(disk: disk)
+    }
+    private var canWrite: Bool {
+        image.imageURL != nil && diskVM.selected != nil && image.sha256Base64 != nil && !oversize
+            && !writer.isRunning
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            header
+
+            field(title: "Image", systemImage: "opticaldiscdrive") {
+                HStack(spacing: 8) {
+                    if image.hashing { ProgressView().controlSize(.small) }
                     Text(image.imageURL?.lastPathComponent ?? "No image selected")
+                        .lineLimit(1).truncationMode(.middle)
                         .foregroundStyle(image.imageURL == nil ? .secondary : .primary)
-                    Spacer()
+                    Spacer(minLength: 8)
                     Button("Choose…") { importing = true }
                 }
             }
 
-            GroupBox("Target disk") {
-                HStack {
-                    Picker("Disk", selection: $diskVM.selected) {
+            field(title: "Target disk", systemImage: "externaldrive") {
+                HStack(spacing: 8) {
+                    Picker("", selection: $diskVM.selected) {
                         Text("Select a disk").tag(DiskInfo?.none)
                         ForEach(diskVM.disks) { d in
-                            Text("\(d.model) — \(d.displaySize) (/dev/\(d.bsdName))")
-                                .tag(DiskInfo?.some(d))
+                            Text("\(d.model) — \(d.displaySize)").tag(DiskInfo?.some(d))
                         }
                     }
-                    Button("Refresh") { diskVM.refresh() }
+                    .labelsHidden()
+                    Button { diskVM.refresh() } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .help("Rescan disks")
                 }
             }
 
-            if let disk = diskVM.selected, image.imageSize > 0, !image.fits(disk: disk) {
-                Label("Image is larger than the selected disk.", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+            if oversize {
+                Label("Image is larger than the selected disk.", systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout).foregroundStyle(.orange)
             }
 
-            if writer.phase.isEmpty == false || writer.finished {
-                ProgressView(value: writer.fraction) {
-                    Text(writer.finished
-                         ? (writer.errorText.map { "Failed: \($0)" } ?? "Done ✅")
-                         : "\(writer.phase.capitalized)… \(Int(writer.fraction * 100))%")
-                }
+            if writer.isRunning || writer.finished {
+                statusRow
             }
 
-            Button("Write") { showConfirm = true }
-                .disabled(image.imageURL == nil || diskVM.selected == nil || image.sha256Base64 == nil
-                          || (diskVM.selected.map { !image.fits(disk: $0) } ?? true))
-                .keyboardShortcut(.defaultAction)
+            Button { showConfirm = true } label: {
+                Label("Write", systemImage: "arrow.down.to.line")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent).tint(accent).controlSize(.large)
+            .disabled(!canWrite)
+            .keyboardShortcut(.defaultAction)
         }
         .padding(20)
-        .frame(minWidth: 380, idealWidth: 420, maxWidth: 560, alignment: .topLeading)
+        .frame(minWidth: 400, idealWidth: 420, maxWidth: 480, alignment: .topLeading)
         .fixedSize(horizontal: false, vertical: true)
         .onAppear { diskVM.refresh() }
         .fileImporter(isPresented: $importing,
@@ -69,7 +85,55 @@ struct ContentView: View {
             Button("Cancel", role: .cancel) {}
             Button("Erase and Write", role: .destructive) { startWrite() }
         } message: {
-            Text("All data on /dev/\(diskVM.selected?.bsdName ?? "") (\(diskVM.selected?.displaySize ?? "")) will be destroyed.")
+            Text("All data on /dev/\(diskVM.selected?.bsdName ?? "") (\(diskVM.selected?.displaySize ?? "")) will be permanently destroyed.")
+        }
+    }
+
+    private var header: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "externaldrive.fill.badge.plus")
+                .font(.system(size: 26, weight: .medium))
+                .foregroundStyle(accent)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("rufus4mac").font(.title2.bold())
+                Text("Create a bootable USB drive").font(.subheadline).foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+    }
+
+    @ViewBuilder
+    private var statusRow: some View {
+        let pct = Int(writer.fraction * 100)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                if writer.finished, writer.errorText == nil {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                    Text("Done").fontWeight(.medium)
+                } else if let err = writer.errorText {
+                    Image(systemName: "xmark.octagon.fill").foregroundStyle(.red)
+                    Text(err).lineLimit(2).font(.callout).foregroundStyle(.secondary)
+                } else {
+                    Text("\(writer.phase.capitalized)…").fontWeight(.medium)
+                    Spacer()
+                    Text("\(pct)%").monospacedDigit().foregroundStyle(.secondary)
+                }
+            }
+            if !writer.finished || writer.errorText == nil {
+                ProgressView(value: writer.finished ? 1 : writer.fraction).tint(accent)
+            }
+        }
+    }
+
+    private func field<Content: View>(title: String, systemImage: String,
+                                      @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(title, systemImage: systemImage)
+                .font(.caption).fontWeight(.semibold).foregroundStyle(.secondary)
+            content()
+                .padding(.horizontal, 10).padding(.vertical, 8)
+                .background(Color(nsColor: .controlBackgroundColor),
+                            in: RoundedRectangle(cornerRadius: 8))
         }
     }
 
@@ -81,7 +145,6 @@ struct ContentView: View {
     private func startWrite() {
         guard let url = image.imageURL, let disk = diskVM.selected,
               let hash = image.sha256Base64 else { return }
-        writer.startWrite(imagePath: url.path, bsdName: disk.bsdName,
-                          sha256Base64: hash)
+        writer.startWrite(imagePath: url.path, bsdName: disk.bsdName, sha256Base64: hash)
     }
 }

@@ -11,13 +11,14 @@ final class ElevatedWriter: NSObject, ObservableObject {
     @Published var phase: String = ""
     @Published var fraction: Double = 0
     @Published var finished: Bool = false
+    @Published var isRunning: Bool = false
     @Published var errorText: String?
 
     private let chunkSize = 4 * 1024 * 1024
     private let authopen = "/usr/libexec/authopen"
 
     func startWrite(imagePath: String, bsdName: String, sha256Base64: String) {
-        phase = "preparing"; fraction = 0; finished = false; errorText = nil
+        phase = "preparing"; fraction = 0; finished = false; isRunning = true; errorText = nil
         let total = ((try? FileManager.default.attributesOfItem(atPath: imagePath))?[.size]
                      as? NSNumber)?.uint64Value ?? 0
         Task.detached { [weak self] in
@@ -33,10 +34,10 @@ final class ElevatedWriter: NSObject, ObservableObject {
         }
     }
     private nonisolated func fail(_ msg: String) async {
-        await MainActor.run { self.errorText = msg; self.finished = true }
+        await MainActor.run { self.errorText = msg; self.finished = true; self.isRunning = false }
     }
     private nonisolated func done() async {
-        await MainActor.run { self.fraction = 1; self.finished = true }
+        await MainActor.run { self.fraction = 1; self.finished = true; self.isRunning = false }
     }
 
     private nonisolated func run(imagePath: String, bsdName: String,
