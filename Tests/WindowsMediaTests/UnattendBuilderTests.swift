@@ -35,6 +35,11 @@ final class UnattendBuilderTests: XCTestCase {
         let xml = UnattendBuilder.build(WindowsCustomization(disableBitLocker: true))!
         XCTAssertTrue(xml.contains("PreventDeviceEncryption"))
     }
+    func testUsernameWithAmpersandIsXMLEscaped() {
+        let xml = UnattendBuilder.build(WindowsCustomization(localAccountUsername: "a&b"))!
+        XCTAssertTrue(xml.contains("<Name>a&amp;b</Name>"))
+        XCTAssertFalse(xml.contains("<Name>a&b</Name>"))
+    }
     func testEmptyUsernameNotTreatedAsAccount() {
         let xml = UnattendBuilder.build(WindowsCustomization(localAccountUsername: "", skipPrivacy: true))
         XCTAssertNotNil(xml)

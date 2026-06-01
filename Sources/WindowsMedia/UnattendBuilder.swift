@@ -30,6 +30,13 @@ public enum UnattendBuilder {
         """
     }
 
+    private static func xmlEscape(_ s: String) -> String {
+        s.replacingOccurrences(of: "&", with: "&amp;")
+         .replacingOccurrences(of: "<", with: "&lt;")
+         .replacingOccurrences(of: ">", with: "&gt;")
+         .replacingOccurrences(of: "\"", with: "&quot;")
+    }
+
     private static let wcm = "xmlns:wcm=\"http://schemas.microsoft.com/WMIConfig/2002/State\""
     private static func attrs(_ name: String) -> String {
         "name=\"\(name)\" processorArchitecture=\"amd64\" publicKeyToken=\"31bf3856ad364e35\" language=\"neutral\" versionScope=\"nonSxS\" \(wcm)"
@@ -53,8 +60,9 @@ public enum UnattendBuilder {
         """
     }
 
-    private static func intlWinPEComponent(_ loc: String) -> String {
-        """
+    private static func intlWinPEComponent(_ rawLoc: String) -> String {
+        let loc = xmlEscape(rawLoc)
+        return """
             <component \(attrs("Microsoft-Windows-International-Core-WinPE"))>
               <SetupUILanguage><UILanguage>\(loc)</UILanguage></SetupUILanguage>
               <InputLocale>\(loc)</InputLocale>
@@ -89,7 +97,7 @@ public enum UnattendBuilder {
 
         """
         }
-        if hasAccount, let user = o.localAccountUsername {
+        if hasAccount, let user = o.localAccountUsername.map(xmlEscape) {
             inner += """
               <UserAccounts>
                 <LocalAccounts>
@@ -105,7 +113,7 @@ public enum UnattendBuilder {
         """
         }
         if let tz = o.regionTimeZone {
-            inner += "      <TimeZone>\(tz)</TimeZone>\n"
+            inner += "      <TimeZone>\(xmlEscape(tz))</TimeZone>\n"
         }
         return """
             <component \(attrs("Microsoft-Windows-Shell-Setup"))>
