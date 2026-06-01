@@ -18,6 +18,11 @@ final class ServiceDelegate: NSObject, NSXPCListenerDelegate {
     }
 }
 
+let cliArgs = CommandLine.arguments
+if cliArgs.count >= 5, cliArgs[1] == "writepriv" {
+    runWritePriv(imagePath: cliArgs[2], bsdName: cliArgs[3], sha256Base64: cliArgs[4])
+}
+
 let delegate = ServiceDelegate()
 let listener = NSXPCListener(machServiceName: XPCConstants.machServiceName)
 listener.delegate = delegate
