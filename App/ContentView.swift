@@ -8,6 +8,7 @@ struct ContentView: View {
     @StateObject private var writer = ElevatedWriter()
     @State private var showConfirm = false
     @State private var importing = false
+    @AppStorage("verifyAfterWrite") private var verifyAfterWrite = true
 
     /// Brand accent — matches the app icon's orange.
     private let accent = Color(red: 0.90, green: 0.32, blue: 0.06)
@@ -60,6 +61,10 @@ struct ContentView: View {
             if writer.isRunning || writer.finished {
                 statusRow
             }
+
+            Toggle("Verify after writing", isOn: $verifyAfterWrite)
+                .toggleStyle(.checkbox).font(.callout)
+                .disabled(writer.isRunning)
 
             Button { showConfirm = true } label: {
                 Label("Write", systemImage: "arrow.down.to.line")
@@ -145,6 +150,7 @@ struct ContentView: View {
     private func startWrite() {
         guard let url = image.imageURL, let disk = diskVM.selected,
               let hash = image.sha256Base64 else { return }
-        writer.startWrite(imagePath: url.path, bsdName: disk.bsdName, sha256Base64: hash)
+        writer.startWrite(imagePath: url.path, bsdName: disk.bsdName, sha256Base64: hash,
+                          verify: verifyAfterWrite)
     }
 }

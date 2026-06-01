@@ -17,13 +17,13 @@ final class ElevatedWriter: NSObject, ObservableObject {
     private let chunkSize = 4 * 1024 * 1024
     private let authopen = "/usr/libexec/authopen"
 
-    func startWrite(imagePath: String, bsdName: String, sha256Base64: String) {
+    func startWrite(imagePath: String, bsdName: String, sha256Base64: String, verify: Bool) {
         phase = "preparing"; fraction = 0; finished = false; isRunning = true; errorText = nil
         let total = ((try? FileManager.default.attributesOfItem(atPath: imagePath))?[.size]
                      as? NSNumber)?.uint64Value ?? 0
         Task.detached { [weak self] in
             await self?.run(imagePath: imagePath, bsdName: bsdName,
-                            expectedBase64: sha256Base64, total: total)
+                            expectedBase64: sha256Base64, total: total, verify: verify)
         }
     }
 
@@ -41,7 +41,7 @@ final class ElevatedWriter: NSObject, ObservableObject {
     }
 
     private nonisolated func run(imagePath: String, bsdName: String,
-                                 expectedBase64: String, total: UInt64) async {
+                                 expectedBase64: String, total: UInt64, verify: Bool) async {
         let raw = "/dev/r\(bsdName)"
 
         // 1) Unmount the whole disk (removable media unmounts without root).
@@ -89,8 +89,8 @@ final class ElevatedWriter: NSObject, ObservableObject {
             return
         }
 
-        // 3) Verify: read back `total` bytes via `authopen <raw>` and compare SHA-256.
-        guard let expected = Data(base64Encoded: expectedBase64) else { await done(); return }
+        // 3) Verify (optional): read back `total` bytes via `authopen <raw>` and compare SHA-256.
+        guard verify, let expected = Data(base64Encoded: expectedBase64) else { await done(); return }
         await set(phase: "verifying", fraction: 0)
         let vr = Process()
         vr.executableURL = URL(fileURLWithPath: authopen)
