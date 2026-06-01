@@ -16,6 +16,7 @@ final class FormatOptionsTests: XCTestCase {
     func testExfatCapsLabelTo15() {
         let o = FormatOptions(scheme: .gpt, fileSystem: .exfat, label: "ABCDEFGHIJKLMNOPQRST")
         XCTAssertEqual(o.normalizedLabel.count, 15)
+        XCTAssertEqual(o.normalizedLabel, "ABCDEFGHIJKLMNO")
     }
 
     func testEmptyLabelFallsBackToDefault() {

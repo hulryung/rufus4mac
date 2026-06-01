@@ -31,6 +31,8 @@ final class DiskFormatterTests: XCTestCase {
         let fake = FakeRunner(); fake.result = ProcessResult(status: 1, stdout: "", stderr: "busy")
         let f = DiskFormatter(runner: fake)
         XCTAssertThrowsError(try f.format(bsdName: "disk8",
-                                          options: .init(scheme: .gpt, fileSystem: .exfat, label: "X")))
+                                          options: .init(scheme: .gpt, fileSystem: .exfat, label: "X"))) {
+            XCTAssertTrue($0 is DiskFormatError)
+        }
     }
 }
