@@ -48,4 +48,21 @@ final class WindowsUSBWriterTests: XCTestCase {
         XCTAssertTrue(fm.fileExists(atPath: usb.appendingPathComponent("sources/install.wim").path))
         XCTAssertFalse(fake.calls.contains { $0.1.first == "split" })
     }
+
+    func testThrowsForOversizedNonWimInstallImage() throws {
+        let fm = FileManager.default
+        let iso = fm.temporaryDirectory.appendingPathComponent("m-\(UUID().uuidString)")
+        try fm.createDirectory(at: iso.appendingPathComponent("sources"), withIntermediateDirectories: true)
+        try Data(count: 10).write(to: iso.appendingPathComponent("sources/install.esd"))
+        let usb = fm.temporaryDirectory.appendingPathComponent("u-\(UUID().uuidString)")
+        try fm.createDirectory(at: usb, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: iso); try? fm.removeItem(at: usb) }
+
+        let fake = FakeRunner()
+        let writer = WindowsUSBWriter(runner: fake, wim: WimTool(runner: fake, imagexPath: "/x/wimlib-imagex"))
+        XCTAssertThrowsError(try writer.copyAndSplit(
+            mountedISORoot: iso.path, usbMountPoint: usb.path,
+            installImageRelPath: "sources/install.esd",
+            installImageSizeBytes: 5_000 * 1024 * 1024, progress: { _, _ in }))
+    }
 }

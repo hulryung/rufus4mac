@@ -1,7 +1,6 @@
 import Foundation
 
 public final class WindowsUSBWriter {
-    public enum Phase: String { case formatting, copying, splitting, bypassing }
     let runner: ProcessRunner
     let wim: WimTool
     /// install.wim larger than this (bytes) is split for FAT32. 4000 MB.
@@ -26,6 +25,12 @@ public final class WindowsUSBWriter {
         let fm = FileManager.default
         let willSplit = installImageSizeBytes > splitThreshold
             && installImageRelPath.hasSuffix("install.wim")
+        // Only .wim can be split for FAT32. A >4GB non-.wim install image (e.g. a large
+        // install.esd) cannot fit and is not supported — fail clearly rather than letting
+        // the copy fail cryptically on the FAT32 4GB limit.
+        if installImageSizeBytes > splitThreshold && !willSplit {
+            throw WimToolError(message: "Install image \(installImageRelPath) exceeds FAT32's 4 GB limit and only install.wim can be split; this image is not supported.")
+        }
 
         let entries = try Self.fileList(root: mountedISORoot)
         var total: UInt64 = 0
