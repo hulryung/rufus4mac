@@ -12,26 +12,43 @@ final class ElevatedWriter: NSObject, ObservableObject {
     private var logPath: String = ""
 
     func startWrite(imagePath: String, bsdName: String, sha256Base64: String) {
-        phase = "writing"; fraction = 0; finished = false; errorText = nil
+        phase = "preparing"; fraction = 0; finished = false; errorText = nil
 
         let helper = Bundle.main.bundlePath + "/Contents/MacOS/RufusHelper"
         logPath = NSTemporaryDirectory() + "rufus-\(UUID().uuidString).log"
         FileManager.default.createFile(atPath: logPath, contents: nil)
-
-        // Shell command (paths single-quoted). Assumes no single-quote chars in paths.
-        let shell = "'\(helper)' writepriv '\(imagePath)' \(bsdName) '\(sha256Base64)' > '\(logPath)' 2>&1"
-        let escaped = shell
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-        let script = "do shell script \"\(escaped)\" with administrator privileges"
+        let captured = logPath
+        // The app holds (powerbox) access to the user-picked file; a separately
+        // elevated helper does NOT, and cannot read TCC-protected folders like
+        // ~/Downloads. So stage the image into /tmp (world-readable; the root helper
+        // can read it), point the helper there, and delete it afterward.
+        let stagedPath = "/tmp/rufus-stage-\(UUID().uuidString).img"
 
         // Poll the log file for progress while the elevated command runs.
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.poll() }
         }
 
-        let captured = logPath
         Task.detached {
+            // Stage (copy) the selected image where the root helper can read it.
+            do {
+                try? FileManager.default.removeItem(atPath: stagedPath)
+                try FileManager.default.copyItem(atPath: imagePath, toPath: stagedPath)
+            } catch {
+                await MainActor.run {
+                    self.pollTimer?.invalidate(); self.pollTimer = nil
+                    self.errorText = "Could not prepare image: \(error)"
+                    self.finished = true
+                }
+                return
+            }
+
+            let shell = "'\(helper)' writepriv '\(stagedPath)' \(bsdName) '\(sha256Base64)' > '\(captured)' 2>&1"
+            let escaped = shell
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"")
+            let script = "do shell script \"\(escaped)\" with administrator privileges"
+
             let p = Process()
             p.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
             p.arguments = ["-e", script]
@@ -42,6 +59,7 @@ final class ElevatedWriter: NSObject, ObservableObject {
             let status = p.terminationStatus
             let osaErr = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(),
                                 encoding: .utf8) ?? ""
+            try? FileManager.default.removeItem(atPath: stagedPath)
             await MainActor.run {
                 self.finish(status: status, runError: runErr, osaErr: osaErr, log: captured)
             }
