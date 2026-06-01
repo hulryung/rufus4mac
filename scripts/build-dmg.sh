@@ -39,13 +39,8 @@ xcodebuild -project rufus4mac.xcodeproj -scheme RufusApp -configuration Release 
     build
 cp -R "$DERIVED/Build/Products/Release/RufusApp.app" "$APP"
 
-# Sign inside-out: the embedded helper first, then the app bundle, both with
-# hardened runtime + a secure timestamp. SMAppService requires a valid signature
-# on both the daemon and the host app.
-echo "==> Signing embedded helper"
-codesign --force --options runtime --timestamp \
-    --sign "$IDENTITY" "$APP/Contents/MacOS/RufusHelper"
-
+# Sign the app bundle with hardened runtime + a secure timestamp. There is no
+# embedded privileged helper — the privileged write goes through Apple's `authopen`.
 echo "==> Signing app bundle"
 codesign --force --options runtime --timestamp \
     --sign "$IDENTITY" "$APP"

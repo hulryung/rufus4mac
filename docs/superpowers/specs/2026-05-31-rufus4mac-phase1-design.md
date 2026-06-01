@@ -1,8 +1,18 @@
 # rufus4mac — Phase 1 Design (Raw/DD Image Writer)
 
 **Date:** 2026-05-31
-**Status:** Approved for planning
+**Status:** Implemented (with one architecture change — see below)
 **Scope:** Phase 1 of the rufus4mac roadmap
+
+> **Update (2026-06-01) — privilege model changed.** This design specified an
+> `SMAppService` privileged LaunchDaemon reached over XPC. In practice macOS 26 denies
+> raw-disk access to background/daemon and `osascript`-elevated root processes (TCC EPERM,
+> even on `open(O_RDONLY)`) without Full Disk Access. The shipping app instead writes through
+> Apple's `authopen` (setuid-root, entitled for removable volumes) with the app as the
+> responsible process — an inline authorization prompt, no daemon, no Full Disk Access. The
+> pure-Swift core (WriteEngine, device I/O, SHA-256 verify, DiskDiscovery) below is unchanged
+> and shipped as designed. See `docs/superpowers/plans/2026-05-31-rufus4mac-phase1.md` for the
+> full rationale.
 
 ---
 

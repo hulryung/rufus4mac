@@ -17,29 +17,49 @@
 
 ## Implementation Status (updated 2026-06-01)
 
-**Tasks 1–25 are done** on branch `phase1-implementation` — TDD throughout, two-stage reviewed
-per task plus holistic + integration reviews. Real bugs caught & fixed in review (mid-stream
-padding corruption, verify EINVAL on unaligned reads, unmount timeout use-after-free, fsync
-swallow, helper fail-OPEN safety hole, silent XPC error). Verified state:
-- **SPM core (M1–2, Tasks 1–11):** 23 tests, 0 failures/warnings, end-to-end write+verify against
-  real `hdiutil` device nodes, unprivileged.
-- **App + helper (M3–4, Tasks 12–22):** `rufus4mac.xcodeproj` generated via **xcodegen** (Task 13
-  done headlessly, not in the Xcode GUI). RufusApp + RufusHelper both compile via `xcodebuild`
-  (`CODE_SIGNING_ALLOWED=NO`). Bundle embeds the helper at `Contents/MacOS/RufusHelper` and the
-  LaunchDaemon plist at `Contents/Library/LaunchDaemons/`. Helper fails closed on non-removable
-  targets and pins XPC callers to the HUCONN signing requirement.
-- **Docs/packaging (M5, Tasks 23–25):** `docs/manual-test-checklist.md`, `scripts/build-dmg.sh`
-  (not yet run), README updated.
+Phase 1 is **working on real hardware** (a Linux ISO written + verified to a USB stick on
+macOS 26, Apple Silicon). Built on branch `phase1-implementation`, merged to `main`, repo public.
 
-**Remaining — genuinely manual (cannot be automated):**
-- **Task 15 (optional):** dev `sudo launchctl` helper install — superseded by SMAppService for
-  production; only useful for local dev without a signed build.
-- **Run `scripts/build-dmg.sh`:** needs Developer ID signing (cert present) + a `notarytool`
-  credential profile the user must create. SMAppService registration & the privileged write only
-  work from a signed build.
-- **Real-USB destructive test (`docs/manual-test-checklist.md`):** needs hardware.
+### Privilege model — pivoted to `authopen` (supersedes the SMAppService design)
 
-Everything below (the original task-by-task plan) is retained as the historical record.
+The original plan used an `SMAppService` privileged LaunchDaemon + XPC. On macOS 26 that path
+hit a hard wall: a background daemon (and an `osascript`-elevated root process) is denied raw
+disk access with **EPERM — even for `open(O_RDONLY)`** — because non-TTY processes need a TCC
+grant (Full Disk Access) for raw devices. Diagnosis (helper logged uid=0, disk unmounted,
+`open` EPERM on every flag) confirmed it's TCC, not permissions. `sudo dd` from a TTY works only
+because interactive TTY-root is TCC-exempt.
+
+**Final design:** the app drives the write directly through Apple's **`/usr/libexec/authopen`**
+(setuid-root, entitled `com.apple.private.tcc.check-allow-on-responsible-process` for
+`RemovableVolumes`). The app is the responsible process and declares
+`NSRemovableVolumesUsageDescription`, so the user gets an inline authorization prompt — **no
+persistent daemon, no Full Disk Access.** Flow: app `diskutil unmountDisk` → stream the
+(sector-padded) image into `authopen -w /dev/rdiskN` → read back via `authopen` and compare
+SHA-256. The app reads the user-picked file itself (it holds powerbox access), so
+TCC-protected sources like `~/Downloads` work.
+
+The legacy SMAppService/XPC/daemon code (WriteClient, HelperInstaller, WriteService, the
+RufusHelper target, XPCProtocol, the LaunchDaemon plist) has been **removed**; the codebase is
+authopen-only. `App/ElevatedWriter.swift` implements the write.
+
+### What shipped
+- **SPM core (Tasks 1–11):** RufusCore (sector-aligned WriteEngine, device I/O, SHA-256 verify)
+  + DiskDiscovery (removableDisks with boot-disk exclusion, unmountDisk). 23 tests, 0 warnings,
+  end-to-end verified against `hdiutil` devices. Real bugs caught in review and fixed (mid-stream
+  padding corruption, verify EINVAL on unaligned reads, unmount timeout use-after-free, fsync
+  swallow).
+- **App:** SwiftUI (`ContentView` + view-models + `ElevatedWriter`), refined UI (header, SF
+  Symbols, accent, prominent Write button), app icon (`scripts/make-icon.swift`). Xcode project
+  generated via **xcodegen** (`project.yml`), built with `xcodebuild`.
+- **Packaging/docs:** `scripts/build-dmg.sh` (sign + notarize; not yet run), README, this plan,
+  `docs/manual-test-checklist.md` — all describe the authopen architecture.
+
+### Remaining (manual)
+- Run `scripts/build-dmg.sh` for a notarized DMG (needs a `notarytool` credential profile).
+- Optional: a "verify after writing" toggle to skip the read-back pass on slow USB.
+
+Everything below (the original task-by-task plan) is retained as the historical record; note the
+SMAppService/XPC tasks (12, 14, 16, 22) were superseded by the authopen design above.
 
 ### Deviations from the plan as written (what actually shipped)
 
