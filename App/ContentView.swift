@@ -137,7 +137,7 @@ struct ContentView: View {
         }
         .alert("Erase \(diskVM.selected?.model ?? "")?", isPresented: $showConfirm) {
             Button("Cancel", role: .cancel) {}
-            Button("Erase and Write", role: .destructive) { startWrite() }
+            Button(formatMode ? "Erase and Format" : "Erase and Write", role: .destructive) { startWrite() }
         } message: {
             if formatMode {
                 Text("Erase and format /dev/\(diskVM.selected?.bsdName ?? "") as \(fmtFSRaw)? All data will be permanently destroyed.")
