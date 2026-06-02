@@ -13,6 +13,7 @@
 		3D68279071F8AC8F3843B01D /* WindowsWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E02135202D237D0CE1790F36 /* WindowsWriter.swift */; };
 		437F9CBB5784262118433CFC /* DiskFormat in Frameworks */ = {isa = PBXBuildFile; productRef = 7DD6ED711198F47A85AC1CD7 /* DiskFormat */; };
 		5603028425CC2DC993702258 /* RufusCore in Frameworks */ = {isa = PBXBuildFile; productRef = DFCC75988298AE57BBFCBCEA /* RufusCore */; };
+		6D8A00B3C185192FBC2C5F72 /* ChecksumRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00FAC82309A3513379FD118F /* ChecksumRunner.swift */; };
 		77E06CA720367CAE36459F3A /* DiskDiscovery in Frameworks */ = {isa = PBXBuildFile; productRef = E37CFE9D0E3F7155A66C3947 /* DiskDiscovery */; };
 		81C0EC3CA586E54760ABD1F2 /* WindowsMedia in Frameworks */ = {isa = PBXBuildFile; productRef = 6D2D3E7972AE7DC5A3DC7FA7 /* WindowsMedia */; };
 		C7FB1424CA852C49E7FDD0C7 /* ElevatedWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD86C0CD50B072BC1B022B81 /* ElevatedWriter.swift */; };
@@ -23,6 +24,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		00FAC82309A3513379FD118F /* ChecksumRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecksumRunner.swift; sourceTree = "<group>"; };
 		159736C417976813F7440314 /* rufus4mac */ = {isa = PBXFileReference; lastKnownFileType = folder; name = rufus4mac; path = .; sourceTree = SOURCE_ROOT; };
 		4BFC40AE0E9D06D703B8E944 /* FormatRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatRunner.swift; sourceTree = "<group>"; };
 		6FC3B6AE39D7A5B5B76C2AF8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -71,6 +73,7 @@
 			isa = PBXGroup;
 			children = (
 				6FC3B6AE39D7A5B5B76C2AF8 /* Assets.xcassets */,
+				00FAC82309A3513379FD118F /* ChecksumRunner.swift */,
 				C9283A090DED74921A5C9759 /* ContentView.swift */,
 				7BF079F0C6B1EA348EFE2FAC /* DiskListViewModel.swift */,
 				CD86C0CD50B072BC1B022B81 /* ElevatedWriter.swift */,
@@ -167,6 +170,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6D8A00B3C185192FBC2C5F72 /* ChecksumRunner.swift in Sources */,
 				336822C5D4BC5FC506FF482D /* ContentView.swift in Sources */,
 				0BDECFE0DCD81BA07D3A314A /* DiskListViewModel.swift in Sources */,
 				C7FB1424CA852C49E7FDD0C7 /* ElevatedWriter.swift in Sources */,

@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 import DiskDiscovery
 import DiskFormat
 import WindowsMedia
+import RufusCore
 
 struct ContentView: View {
     @StateObject private var diskVM = DiskListViewModel()
@@ -10,6 +11,7 @@ struct ContentView: View {
     @StateObject private var writer = ElevatedWriter()
     @StateObject private var winWriter = WindowsWriter()
     @StateObject private var formatRunner = FormatRunner()
+    @StateObject private var checksums = ChecksumRunner()
     @State private var showConfirm = false
     @State private var importing = false
     @AppStorage("verifyAfterWrite") private var verifyAfterWrite = true
@@ -61,6 +63,28 @@ struct ContentView: View {
                         .foregroundStyle(image.imageURL == nil ? .secondary : .primary)
                     Spacer(minLength: 8)
                     Button("Choose…") { importing = true }
+                }
+            }
+
+            if image.imageURL != nil {
+                field(title: "Checksums", systemImage: "number") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if let r = checksums.result {
+                            checksumRow("MD5", r.md5)
+                            checksumRow("SHA-1", r.sha1)
+                            checksumRow("SHA-256", r.sha256)
+                        } else if checksums.isRunning {
+                            ProgressView(value: checksums.fraction) {
+                                Text("Computing… \(Int(checksums.fraction * 100))%")
+                            }
+                        } else if let e = checksums.errorText {
+                            Text(e).font(.callout).foregroundStyle(.red)
+                        } else {
+                            Button("Compute checksums") {
+                                if let p = image.imageURL?.path { checksums.compute(imagePath: p) }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -148,6 +172,7 @@ struct ContentView: View {
                       allowsMultipleSelection: false) { result in
             if case .success(let urls) = result, let url = urls.first {
                 image.select(url: url)
+                checksums.clear()
                 Task { await image.computeHash() }
             }
         }
@@ -196,6 +221,14 @@ struct ContentView: View {
             if !activeFinished || activeError == nil {
                 ProgressView(value: activeFinished ? 1 : activeFraction).tint(accent)
             }
+        }
+    }
+
+    private func checksumRow(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(label).font(.caption).foregroundStyle(.secondary).frame(width: 56, alignment: .leading)
+            Text(value).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                .lineLimit(1).truncationMode(.middle)
         }
     }
 
