@@ -24,6 +24,9 @@ and notarized by Apple, so it launches without Gatekeeper warnings.
 
 > ⚠️ Writing erases the entire target disk. Double-check the selection.
 
+Select an image and click **Compute checksums** to see its MD5 / SHA-1 / SHA-256 (handy for verifying
+a download against a published hash).
+
 For Windows ISOs you can preset **Windows User Experience** options, applied via a generated
 `autounattend.xml`: bypass Windows 11 checks (TPM/Secure Boot/RAM/CPU), create a local account,
 skip privacy questions, match this Mac's region & language, and disable BitLocker auto-encryption.

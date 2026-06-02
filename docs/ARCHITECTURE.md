@@ -82,11 +82,17 @@ write path determines the on-disk format, so the format options are hidden.
 
 Design: `docs/superpowers/specs/2026-06-01-rufus4mac-phase3-format-design.md`.
 
+### Checksums
+
+`Checksums.compute` (RufusCore) reads the selected image once, updating MD5 / SHA-1 / SHA-256
+(CryptoKit `Insecure.MD5`/`Insecure.SHA1`/`SHA256`) together, and returns lowercase hex. The app's
+`ChecksumRunner` runs it off-main on demand and the UI shows the three hashes (selectable to copy).
+
 ## Repository layout
 
 ```
 Package.swift            Swift package: the pure-logic core (no Xcode needed)
-Sources/RufusCore/       WriteEngine, device/file block I/O, SHA-256 verify
+Sources/RufusCore/       WriteEngine, device/file block I/O, SHA-256 verify, Checksums (MD5/SHA-1/SHA-256)
 Sources/DiskDiscovery/   removableDisks() (boot disk excluded), unmountDisk(), DiskInfo
 Sources/SystemTools/     ProcessRunner / ProcessResult / SystemProcessRunner (shared)
 Sources/WindowsMedia/    ISOInspector, WimTool, WindowsUSBWriter, Win11Bypass
