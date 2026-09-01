@@ -188,13 +188,24 @@ struct ContentView: View {
         }
     }
 
+    /// Short version from the app bundle, e.g. "0.3.1". Shown in the header so the running
+    /// build is always identifiable — two builds of this app look identical otherwise.
+    private static let appVersion: String =
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+
     private var header: some View {
         HStack(spacing: 12) {
             Image(systemName: "externaldrive.fill.badge.plus")
                 .font(.system(size: 26, weight: .medium))
                 .foregroundStyle(accent)
             VStack(alignment: .leading, spacing: 1) {
-                Text("rufus4mac").font(.title2.bold())
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("rufus4mac").font(.title2.bold())
+                    Text(Self.appVersion)
+                        .font(.callout.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("Version \(Self.appVersion)")
+                }
                 Text("Create a bootable USB drive").font(.subheadline).foregroundStyle(.secondary)
             }
             Spacer()
