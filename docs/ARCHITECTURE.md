@@ -51,9 +51,13 @@ Windows install ISOs can't be raw-written: UEFI boots only from FAT, but `source
 usually larger than FAT32's 4 GB per-file limit. So:
 
 1. Auto-detect a Windows ISO (`sources/install.wim`/`install.esd` + a UEFI boot file).
-2. `diskutil eraseDisk MS-DOS WIN GPT /dev/diskN` — formats GPT/FAT32 (no password for removable
-   media). The FAT volume may land on slice `s1` or `s2` (after an EFI System Partition), so the
-   code locates it by volume label, not a fixed slice index.
+2. `diskutil eraseDisk MS-DOS WIN MBR /dev/diskN` — formats MBR/FAT32 (no password for removable
+   media). **MBR, not GPT:** on a disk of real USB size `diskutil` prepends a 200 MB EFI System
+   Partition to a GPT disk, and Windows Setup can adopt that ESP — the one on the USB — as the
+   boot volume instead of creating one on the target disk, leaving a machine that boots only
+   while the USB is attached. (The ESP is size-dependent: a small disk image gets none, so the
+   integration tests can't catch this — `WindowsUSBWriterTests` asserts the argv instead.) The
+   code still locates the FAT volume by label rather than a fixed slice index.
 3. Mount the ISO (`hdiutil`) and copy its files to the FAT32 volume.
 4. If `install.wim` > 4 GB, split it into `install.swm` chunks with the bundled `wimlib-imagex`
    (Windows Setup reads split SWM natively). The app reads the user-picked file itself, so

@@ -9,10 +9,21 @@ public final class WindowsUSBWriter {
 
     public init(runner: ProcessRunner, wim: WimTool) { self.runner = runner; self.wim = wim }
 
-    /// Format the whole disk as GPT + a single FAT32 volume named `volumeName`.
+    /// Format the whole disk as MBR + a single FAT32 volume named `volumeName`.
+    ///
+    /// MBR, not GPT: on a disk of real USB size `diskutil eraseDisk ... GPT` prepends a 200 MB
+    /// EFI System Partition, and Windows Setup can adopt *that* ESP — the one on the USB — as the
+    /// boot volume instead of creating one on the target disk. Setup then finishes without error,
+    /// but the installed machine boots only while the USB is attached and its internal disk never
+    /// gets an ESP. UEFI firmware boots `\EFI\BOOT\BOOTX64.EFI` from an MBR FAT32 volume just as
+    /// well, so nothing is lost by avoiding GPT here.
+    ///
+    /// The ESP is size-dependent — a GPT format of a small disk image produces none — so the
+    /// hdiutil-backed integration tests cannot catch a regression here. `WindowsUSBWriterTests`
+    /// asserts the argv instead.
     public func format(bsdName: String, volumeName: String) throws {
         let r = try runner.run("/usr/sbin/diskutil",
-                               ["eraseDisk", "MS-DOS", volumeName, "GPT", "/dev/\(bsdName)"])
+                               ["eraseDisk", "MS-DOS", volumeName, "MBR", "/dev/\(bsdName)"])
         if r.status != 0 {
             throw WimToolError(message: "diskutil eraseDisk failed (\(r.status)): \(r.stderr)")
         }

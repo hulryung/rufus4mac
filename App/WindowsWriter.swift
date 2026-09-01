@@ -24,8 +24,8 @@ final class WindowsWriter: NSObject, ObservableObject {
     }
 
     /// Find the mount point of the slice whose VolumeName matches `volumeName`, scanning
-    /// /dev/<bsd>s1..s6. (diskutil GPT format may place the FAT volume on s1 OR s2 — after
-    /// an EFI System Partition — so we can't assume a fixed slice index.)
+    /// /dev/<bsd>s1..s6. (MBR puts the FAT volume on s1, but the lookup stays index-agnostic so
+    /// a change of partition scheme can't silently break volume discovery.)
     private nonisolated static func findVolumeMountPoint(runner: ProcessRunner, bsdName: String,
                                                          volumeName: String) -> String? {
         for i in 1...6 {

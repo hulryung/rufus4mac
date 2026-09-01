@@ -65,4 +65,18 @@ final class WindowsUSBWriterTests: XCTestCase {
             installImageRelPath: "sources/install.esd",
             installImageSizeBytes: 5_000 * 1024 * 1024, progress: { _, _ in }))
     }
+
+    func testFormatUsesMBRSoTheUSBGetsNoEFISystemPartition() throws {
+        let fake = FakeRunner()
+        let writer = WindowsUSBWriter(runner: fake,
+                                      wim: WimTool(runner: fake, imagexPath: "/x/wimlib-imagex"))
+        try writer.format(bsdName: "disk9", volumeName: "WIN")
+
+        XCTAssertEqual(fake.calls.count, 1)
+        XCTAssertEqual(fake.calls[0].0, "/usr/sbin/diskutil")
+        // Regression guard: "GPT" makes diskutil prepend a 200 MB EFI System Partition, which
+        // Windows Setup can adopt as the boot volume instead of creating one on the target
+        // disk — the installed machine then boots only while the USB is attached. Keep MBR.
+        XCTAssertEqual(fake.calls[0].1, ["eraseDisk", "MS-DOS", "WIN", "MBR", "/dev/disk9"])
+    }
 }
