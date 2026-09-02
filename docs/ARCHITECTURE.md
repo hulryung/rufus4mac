@@ -66,10 +66,23 @@ usually larger than FAT32's 4 GB per-file limit. So:
    `autounattend.xml` from a `WindowsCustomization` across the windowsPE / specialize / oobeSystem
    passes — Win11 bypass (`LabConfig` TPM/SecureBoot/RAM/CPU/Storage), a local admin account
    (blank password, which also skips the MS-account screen), skip-privacy OOBE settings, region &
-   language (the app injects the macOS BCP-47 locale + a mapped Windows time-zone), and disabling
-   BitLocker auto-encryption. `WindowsCustomizer.apply` writes that file and, only under the Win11
-   bypass, zeroes `sources/appraiserres.dll`. The username is XML-escaped. If no option is selected,
-   no `autounattend.xml` is written.
+   language, and disabling BitLocker auto-encryption. `WindowsCustomizer.apply` writes that file
+   and, only under the Win11 bypass, zeroes `sources/appraiserres.dll`. The username is
+   XML-escaped. If no option is selected, no `autounattend.xml` is written.
+
+   Region & language is *not* a straight copy of the Mac's settings, and getting that wrong is fatal:
+   Setup rejects an answer file naming a locale it doesn't know with **0x8007000D
+   (ERROR_INVALID_DATA)**. Two rules follow.
+
+   - `Locale.current.identifier` is an ICU id (`en_KR` on a Mac set to English in Korea), not a
+     Windows culture name. `WindowsLocale` maps language+region onto a real Windows locale, falling
+     back to the language's default when the pair isn't one (`en-KR` → `en-US`).
+   - `UILanguage` must name a language the medium actually ships, so `WindowsImageLanguage` reads it
+     from the medium's own `sources/lang.ini` — a retail ko-KR ISO lists only `ko-KR`, and asking it
+     for `en-US` fails Setup just as hard as an invalid locale. When `lang.ini` is missing we emit no
+     `UILanguage` at all and let Setup use the image default.
+
+   So `UILanguage` follows the image while `SystemLocale`/`UserLocale`/`InputLocale` follow the Mac.
 
 Design: `docs/superpowers/specs/2026-06-01-rufus4mac-phase2-windows-design.md`.
 

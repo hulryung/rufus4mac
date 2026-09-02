@@ -261,8 +261,8 @@ struct ContentView: View {
     }
 
     private func windowsCustomization() -> WindowsCustomization {
-        let locale: String? = winUseRegion
-            ? Locale.current.identifier.replacingOccurrences(of: "_", with: "-") : nil
+        // Locale.current.identifier is an ICU id ("en_KR"), not a Windows locale — map it.
+        let locale: String? = winUseRegion ? WindowsLocale.current() : nil
         let tz: String? = winUseRegion
             ? WindowsTimeZone.windowsName(forIANA: TimeZone.current.identifier) : nil
         let user = winLocalAccount ? winUsername.trimmingCharacters(in: .whitespaces) : ""

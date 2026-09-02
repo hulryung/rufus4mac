@@ -11,7 +11,9 @@ public enum UnattendBuilder {
 
         var pe: [String] = []
         if o.bypassWin11 { pe.append(labConfigComponent()) }
-        if let loc = o.regionLocale { pe.append(intlWinPEComponent(loc)) }
+        if o.regionLocale != nil || o.imageUILanguage != nil {
+            pe.append(intlWinPEComponent(userLocale: o.regionLocale, uiLanguage: o.imageUILanguage))
+        }
         if !pe.isEmpty { passes.append(settings("windowsPE", pe)) }
 
         var sp: [String] = []
@@ -60,15 +62,23 @@ public enum UnattendBuilder {
         """
     }
 
-    private static func intlWinPEComponent(_ rawLoc: String) -> String {
-        let loc = xmlEscape(rawLoc)
+    /// `uiLanguage` is what Setup and the installed OS display and MUST exist in the image;
+    /// `userLocale` is only formats/keyboard, so the two are emitted independently. Element order
+    /// follows the documented sample for this component.
+    private static func intlWinPEComponent(userLocale: String?, uiLanguage: String?) -> String {
+        let ui = uiLanguage.map(xmlEscape)
+        let loc = userLocale.map(xmlEscape)
+        var lines: [String] = []
+        if let ui { lines.append("      <SetupUILanguage><UILanguage>\(ui)</UILanguage></SetupUILanguage>") }
+        if let loc {
+            lines.append("      <InputLocale>\(loc)</InputLocale>")
+            lines.append("      <SystemLocale>\(loc)</SystemLocale>")
+        }
+        if let ui { lines.append("      <UILanguage>\(ui)</UILanguage>") }
+        if let loc { lines.append("      <UserLocale>\(loc)</UserLocale>") }
         return """
             <component \(attrs("Microsoft-Windows-International-Core-WinPE"))>
-              <SetupUILanguage><UILanguage>\(loc)</UILanguage></SetupUILanguage>
-              <InputLocale>\(loc)</InputLocale>
-              <SystemLocale>\(loc)</SystemLocale>
-              <UILanguage>\(loc)</UILanguage>
-              <UserLocale>\(loc)</UserLocale>
+        \(lines.joined(separator: "\n"))
             </component>
         """
     }

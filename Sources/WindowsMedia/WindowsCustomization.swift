@@ -11,15 +11,21 @@ public struct WindowsCustomization: Sendable, Equatable {
     /// Windows time-zone name (e.g. "Korea Standard Time"); nil = omit.
     public var regionTimeZone: String?
     public var disableBitLocker: Bool
+    /// UI language the install image actually ships (e.g. "ko-KR"); nil = don't set one, letting
+    /// Setup use the image default. Derived from the medium by `WindowsCustomizer`, not chosen in
+    /// the UI: naming a language the image lacks fails Setup with 0x8007000D.
+    public var imageUILanguage: String?
 
     public init(bypassWin11: Bool = false, localAccountUsername: String? = nil, skipPrivacy: Bool = false,
-                regionLocale: String? = nil, regionTimeZone: String? = nil, disableBitLocker: Bool = false) {
+                regionLocale: String? = nil, regionTimeZone: String? = nil, disableBitLocker: Bool = false,
+                imageUILanguage: String? = nil) {
         self.bypassWin11 = bypassWin11
         self.localAccountUsername = localAccountUsername
         self.skipPrivacy = skipPrivacy
         self.regionLocale = regionLocale
         self.regionTimeZone = regionTimeZone
         self.disableBitLocker = disableBitLocker
+        self.imageUILanguage = imageUILanguage
     }
 
     public var isEmpty: Bool {

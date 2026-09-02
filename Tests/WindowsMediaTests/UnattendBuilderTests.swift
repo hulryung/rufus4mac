@@ -31,6 +31,22 @@ final class UnattendBuilderTests: XCTestCase {
         XCTAssertTrue(xml.contains("<InputLocale>ko-KR</InputLocale>"))
         XCTAssertTrue(xml.contains("<TimeZone>Korea Standard Time</TimeZone>"))
     }
+    /// Regression for 0x8007000D: without a known-good image language we must not name one at all,
+    /// because Setup rejects a UILanguage the image does not ship.
+    func testRegionWithoutImageLanguageOmitsUILanguage() {
+        let xml = UnattendBuilder.build(WindowsCustomization(regionLocale: "en-US"))!
+        XCTAssertTrue(xml.contains("<UserLocale>en-US</UserLocale>"))
+        XCTAssertFalse(xml.contains("<UILanguage>"))
+        XCTAssertFalse(xml.contains("<SetupUILanguage>"))
+    }
+    func testImageLanguageDrivesUILanguageIndependentlyOfUserLocale() {
+        let xml = UnattendBuilder.build(WindowsCustomization(regionLocale: "en-US",
+                                                             imageUILanguage: "ko-KR"))!
+        XCTAssertTrue(xml.contains("<SetupUILanguage><UILanguage>ko-KR</UILanguage></SetupUILanguage>"))
+        XCTAssertTrue(xml.contains("<UILanguage>ko-KR</UILanguage>"))
+        XCTAssertTrue(xml.contains("<SystemLocale>en-US</SystemLocale>"))
+        XCTAssertTrue(xml.contains("<UserLocale>en-US</UserLocale>"))
+    }
     func testBitLockerEmitsPreventDeviceEncryption() {
         let xml = UnattendBuilder.build(WindowsCustomization(disableBitLocker: true))!
         XCTAssertTrue(xml.contains("PreventDeviceEncryption"))
