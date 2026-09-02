@@ -75,8 +75,11 @@ usually larger than FAT32's 4 GB per-file limit. So:
    (ERROR_INVALID_DATA)**. Two rules follow.
 
    - `Locale.current.identifier` is an ICU id (`en_KR` on a Mac set to English in Korea), not a
-     Windows culture name. `WindowsLocale` maps language+region onto a real Windows locale, falling
-     back to the language's default when the pair isn't one (`en-KR` → `en-US`).
+     Windows culture name. `WindowsLocale` maps language+region onto a real Windows locale. When the
+     pair isn't one, the fallback keeps the **region** (`en-KR` → `ko-KR`) and only then tries the
+     language's default: `InputLocale`/`SystemLocale`/`UserLocale` are regional settings, so
+     resolving a Mac in Korea to `en-US` would override the very region the option promises to
+     match — and land further from a Korean ISO's own default than setting nothing would.
    - `UILanguage` must name a language the medium actually ships, so `WindowsImageLanguage` reads it
      from the medium's own `sources/lang.ini` — a retail ko-KR ISO lists only `ko-KR`, and asking it
      for `en-US` fails Setup just as hard as an invalid locale. When `lang.ini` is missing we emit no

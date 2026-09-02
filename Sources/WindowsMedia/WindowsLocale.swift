@@ -23,7 +23,25 @@ public enum WindowsLocale {
         "zh-CN", "zh-TW", "zh-HK", "zh-SG",
     ]
 
-    /// Default locale per language, for when the Mac's language-region pair is not a Windows locale.
+    /// Default locale per region. Tried *before* `languageDefault`, because InputLocale,
+    /// SystemLocale and UserLocale are regional settings: a Mac set to English in Korea is still
+    /// in Korea, so it should get Korean formats and keyboard, not American ones. Falling back to
+    /// the language's home region instead would override the region the user asked us to match —
+    /// and land further from the image's own default than setting nothing would.
+    static let regionDefault: [String: String] = [
+        "AE": "ar-AE", "AR": "es-AR", "AT": "de-AT", "AU": "en-AU", "BE": "nl-BE", "BG": "bg-BG",
+        "BR": "pt-BR", "CA": "en-CA", "CH": "de-CH", "CL": "es-CL", "CN": "zh-CN", "CO": "es-CO",
+        "CZ": "cs-CZ", "DE": "de-DE", "DK": "da-DK", "EE": "et-EE", "EG": "ar-EG", "ES": "es-ES",
+        "FI": "fi-FI", "FR": "fr-FR", "GB": "en-GB", "GR": "el-GR", "HK": "zh-HK", "HR": "hr-HR",
+        "HU": "hu-HU", "ID": "id-ID", "IE": "en-IE", "IL": "he-IL", "IN": "hi-IN", "IR": "fa-IR",
+        "IT": "it-IT", "JP": "ja-JP", "KR": "ko-KR", "LT": "lt-LT", "LV": "lv-LV", "MX": "es-MX",
+        "MY": "ms-MY", "NL": "nl-NL", "NO": "nb-NO", "NZ": "en-NZ", "PL": "pl-PL", "PT": "pt-PT",
+        "RO": "ro-RO", "RS": "sr-RS", "RU": "ru-RU", "SA": "ar-SA", "SE": "sv-SE", "SG": "en-SG",
+        "SI": "sl-SI", "SK": "sk-SK", "TH": "th-TH", "TR": "tr-TR", "TW": "zh-TW", "UA": "uk-UA",
+        "US": "en-US", "VN": "vi-VN", "ZA": "en-ZA",
+    ]
+
+    /// Default locale per language, for when neither the pair nor the region is one we know.
     static let languageDefault: [String: String] = [
         "ar": "ar-SA", "bg": "bg-BG", "ca": "ca-ES", "cs": "cs-CZ", "da": "da-DK",
         "de": "de-DE", "el": "el-GR", "en": "en-US", "es": "es-ES", "et": "et-EE",
@@ -36,13 +54,16 @@ public enum WindowsLocale {
         "th": "th-TH", "tr": "tr-TR", "uk": "uk-UA", "vi": "vi-VN", "zh": "zh-CN",
     ]
 
-    /// A real Windows locale for `language`/`region`, or nil when the language is unmapped.
+    /// A real Windows locale for `language`/`region`, or nil when we can map neither.
     public static func windowsName(language: String?, region: String?) -> String? {
-        guard let lang = language?.lowercased(), !lang.isEmpty else { return nil }
-        if let r = region?.uppercased(), !r.isEmpty, known.contains("\(lang)-\(r)") {
-            return "\(lang)-\(r)"
+        let lang = language?.lowercased()
+        let reg = region?.uppercased()
+        if let lang, !lang.isEmpty, let reg, !reg.isEmpty, known.contains("\(lang)-\(reg)") {
+            return "\(lang)-\(reg)"
         }
-        return languageDefault[lang]
+        if let reg, !reg.isEmpty, let byRegion = regionDefault[reg] { return byRegion }
+        if let lang, !lang.isEmpty { return languageDefault[lang] }
+        return nil
     }
 
     /// The Windows locale matching this Mac's language & region, or nil when unmappable.

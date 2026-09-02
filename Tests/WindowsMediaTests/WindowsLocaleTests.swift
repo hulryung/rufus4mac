@@ -4,8 +4,31 @@ import XCTest
 final class WindowsLocaleTests: XCTestCase {
     /// The 0x8007000D regression: a Mac set to English + Korea produced "en-KR", which no Windows
     /// build knows, and Setup rejected the answer file.
-    func testEnglishLanguageInKoreaFallsBackToEnUS() {
-        XCTAssertEqual(WindowsLocale.windowsName(language: "en", region: "KR"), "en-US")
+    ///
+    /// The fallback keeps the *region*: these settings are regional, so a Mac in Korea must not
+    /// come out as en-US — that would override the region the user asked us to match, and land
+    /// further from a Korean ISO's own default than setting nothing would.
+    func testEnglishLanguageInKoreaFallsBackToKoreaNotTheUS() {
+        XCTAssertEqual(WindowsLocale.windowsName(language: "en", region: "KR"), "ko-KR")
+    }
+    func testRegionBeatsLanguageWhenThePairIsUnknown() {
+        XCTAssertEqual(WindowsLocale.windowsName(language: "en", region: "JP"), "ja-JP")
+        XCTAssertEqual(WindowsLocale.windowsName(language: "fr", region: "KR"), "ko-KR")
+        XCTAssertEqual(WindowsLocale.windowsName(language: "en", region: "BR"), "pt-BR")
+    }
+    func testLanguageDefaultUsedOnlyWhenTheRegionIsUnknown() {
+        XCTAssertEqual(WindowsLocale.windowsName(language: "ja", region: "ZZ"), "ja-JP")
+    }
+    /// Every regionDefault must itself be a locale we consider real.
+    func testRegionDefaultsAreKnownLocales() {
+        for (region, locale) in WindowsLocale.regionDefault {
+            XCTAssertTrue(WindowsLocale.known.contains(locale), "\(region) -> \(locale)")
+        }
+    }
+    func testLanguageDefaultsAreKnownLocales() {
+        for (lang, locale) in WindowsLocale.languageDefault {
+            XCTAssertTrue(WindowsLocale.known.contains(locale), "\(lang) -> \(locale)")
+        }
     }
     func testKnownPairIsKept() {
         XCTAssertEqual(WindowsLocale.windowsName(language: "ko", region: "KR"), "ko-KR")
@@ -15,14 +38,23 @@ final class WindowsLocaleTests: XCTestCase {
     func testCasingIsNormalized() {
         XCTAssertEqual(WindowsLocale.windowsName(language: "KO", region: "kr"), "ko-KR")
     }
+    /// This Mac's own setting, end to end.
+    func testEnglishInKoreaResolvesToKorean() {
+        XCTAssertEqual(WindowsLocale.current(Locale(identifier: "en_KR")), "ko-KR")
+    }
     func testMissingRegionUsesLanguageDefault() {
         XCTAssertEqual(WindowsLocale.windowsName(language: "ja", region: nil), "ja-JP")
         XCTAssertEqual(WindowsLocale.windowsName(language: "pt", region: nil), "pt-BR")
     }
-    func testUnknownLanguageIsNil() {
+    func testUnknownLanguageAndRegionIsNil() {
         XCTAssertNil(WindowsLocale.windowsName(language: "xx", region: "YY"))
-        XCTAssertNil(WindowsLocale.windowsName(language: nil, region: "KR"))
-        XCTAssertNil(WindowsLocale.windowsName(language: "", region: "KR"))
+        XCTAssertNil(WindowsLocale.windowsName(language: nil, region: nil))
+        XCTAssertNil(WindowsLocale.windowsName(language: "", region: ""))
+    }
+    /// A known region alone is enough, even with no usable language.
+    func testRegionAloneResolves() {
+        XCTAssertEqual(WindowsLocale.windowsName(language: nil, region: "KR"), "ko-KR")
+        XCTAssertEqual(WindowsLocale.windowsName(language: "xx", region: "KR"), "ko-KR")
     }
     func testCurrentIsEitherNilOrAKnownWindowsLocale() {
         if let l = WindowsLocale.current(Locale(identifier: "en_KR")) {
