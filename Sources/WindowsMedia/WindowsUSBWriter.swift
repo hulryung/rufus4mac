@@ -68,7 +68,8 @@ public final class WindowsUSBWriter {
             let outDir = (usbMountPoint as NSString).appendingPathComponent("sources")
             try fm.createDirectory(atPath: outDir, withIntermediateDirectories: true)
             let outSWM = (outDir as NSString).appendingPathComponent("install.swm")
-            try wim.split(wim: srcWim, outFirstSWM: outSWM, chunkMB: 4000)
+            try wim.split(wim: srcWim, outFirstSWM: outSWM, chunkMB: 4000,
+                          progress: { progress("splitting", $0) })
             try verifySplit(outDir: outDir, sourceSizeBytes: installImageSizeBytes)
             progress("splitting", 1)
         }

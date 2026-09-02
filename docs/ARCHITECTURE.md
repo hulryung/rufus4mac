@@ -84,6 +84,12 @@ usually larger than FAT32's 4 GB per-file limit. So:
 
    So `UILanguage` follows the image while `SystemLocale`/`UserLocale`/`InputLocale` follow the Mac.
 
+Splitting moves ~7 GB and takes minutes, so `WimTool.split` parses wimlib's own meter
+(`Splitting WIM: 3126 MiB of 6894 MiB (45%) …`, written to stdout) and forwards the fraction to the
+progress callback. `SystemProcessRunner` therefore reads stdout in chunks rather than to EOF, while
+stderr keeps draining on its own queue so neither pipe can fill and deadlock. Without this the UI
+sits at 0% for the whole split and looks hung.
+
 ### Why the Windows path verifies itself
 
 Neither `copyItem` nor `wimlib-imagex split` reliably reports failure when a USB stops accepting
