@@ -10,6 +10,7 @@ let package = Package(
         .library(name: "SystemTools", targets: ["SystemTools"]),
         .library(name: "WindowsMedia", targets: ["WindowsMedia"]),
         .library(name: "DiskFormat", targets: ["DiskFormat"]),
+        .library(name: "WimSplit", targets: ["WimSplit"]),
     ],
     targets: [
         .target(name: "RufusCore"),
@@ -18,10 +19,13 @@ let package = Package(
         .target(name: "SystemTools"),
         .target(name: "WindowsMedia", dependencies: ["SystemTools"]),
         .target(name: "DiskFormat", dependencies: ["SystemTools"]),
+        // MIT-licensed; see Sources/WimSplit/LICENSE. Deliberately dependency-free.
+        .target(name: "WimSplit", exclude: ["LICENSE", "README.md"]),
         .testTarget(name: "DiskFormatTests", dependencies: ["DiskFormat"]),
         .testTarget(name: "RufusCoreTests", dependencies: ["RufusCore", "TestSupport", "DiskDiscovery"]),
         .testTarget(name: "DiskDiscoveryTests", dependencies: ["DiskDiscovery"]),
         .testTarget(name: "SystemToolsTests", dependencies: ["SystemTools"]),
         .testTarget(name: "WindowsMediaTests", dependencies: ["WindowsMedia", "SystemTools"]),
+        .testTarget(name: "WimSplitTests", dependencies: ["WimSplit"]),
     ]
 )
