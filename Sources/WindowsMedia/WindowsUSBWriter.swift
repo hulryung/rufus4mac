@@ -60,6 +60,8 @@ public final class WindowsUSBWriter {
             progress("copying", total == 0 ? 1 : Double(done) / Double(total))
         }
 
+        try verifyCopy(entries: entries, usbMountPoint: usbMountPoint, skipping: willSplit ? installImageRelPath : nil)
+
         if willSplit {
             progress("splitting", 0)
             let srcWim = (mountedISORoot as NSString).appendingPathComponent(installImageRelPath)
@@ -67,7 +69,66 @@ public final class WindowsUSBWriter {
             try fm.createDirectory(atPath: outDir, withIntermediateDirectories: true)
             let outSWM = (outDir as NSString).appendingPathComponent("install.swm")
             try wim.split(wim: srcWim, outFirstSWM: outSWM, chunkMB: 4000)
+            try verifySplit(outDir: outDir, sourceSizeBytes: installImageSizeBytes)
             progress("splitting", 1)
+        }
+    }
+
+    /// Check every copied file arrived at its full size. Same reasoning as `verifySplit`: a USB
+    /// that stops accepting writes doesn't necessarily surface an error to `copyItem`.
+    func verifyCopy(entries: [Entry], usbMountPoint: String, skipping: String?) throws {
+        let fm = FileManager.default
+        for e in entries where e.rel != skipping {
+            let dst = (usbMountPoint as NSString).appendingPathComponent(e.rel)
+            let size = ((try? fm.attributesOfItem(atPath: dst))?[.size] as? NSNumber)?.uint64Value
+            guard let size else {
+                throw WimToolError(message: "\(e.rel) is missing from the USB after copying.")
+            }
+            if size != e.size {
+                throw WimToolError(message: """
+                    \(e.rel) copied incompletely (\(size) of \(e.size) bytes). The USB may have \
+                    disconnected during the write — try a port on the Mac itself rather than a hub \
+                    or dock, then write again.
+                    """)
+            }
+        }
+    }
+
+    /// FAT32's maximum file size, 4 GiB - 1.
+    static let fat32MaxFileSize: UInt64 = 4 * 1024 * 1024 * 1024 - 1
+
+    /// Check the split actually landed on the USB.
+    ///
+    /// `wimlib-imagex split` exits 0 even when the volume stopped accepting writes part-way: a USB
+    /// that drops off the bus mid-split leaves a truncated `install.swm`, a "successful" write, and
+    /// a stick that only fails hours later inside Windows Setup with 0x8007000D. Splitting rewrites
+    /// each part's header and XML so the parts total slightly *under* the source (~0.5%); anything
+    /// far below that means the write was cut short.
+    func verifySplit(outDir: String, sourceSizeBytes: UInt64) throws {
+        let fm = FileManager.default
+        let parts = ((try? fm.contentsOfDirectory(atPath: outDir)) ?? [])
+            .filter { $0.hasPrefix("install") && $0.hasSuffix(".swm") }
+            .sorted()
+        guard !parts.isEmpty else {
+            throw WimToolError(message: "Splitting install.wim produced no .swm parts on the USB.")
+        }
+        var total: UInt64 = 0
+        for name in parts {
+            let full = (outDir as NSString).appendingPathComponent(name)
+            let size = ((try? fm.attributesOfItem(atPath: full))?[.size] as? NSNumber)?.uint64Value ?? 0
+            if size > Self.fat32MaxFileSize {
+                throw WimToolError(message: "\(name) is \(size) bytes, over FAT32's 4 GB file limit.")
+            }
+            total += size
+            try wim.info(wim: full)   // catches a part whose tail never made it to the device
+        }
+        let minimum = sourceSizeBytes / 100 * 97
+        if total < minimum {
+            throw WimToolError(message: """
+                The Windows image was not fully written: \(parts.count) part(s) totalling \(total) \
+                bytes, expected at least \(minimum). The USB may have disconnected during the write \
+                — try a port on the Mac itself rather than a hub or dock, then write again.
+                """)
         }
     }
 

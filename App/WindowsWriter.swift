@@ -69,7 +69,13 @@ final class WindowsWriter: NSObject, ObservableObject {
                 await set("customizing", 1)
                 try WindowsCustomizer.apply(usbRoot: mp, options: customization)
             }
-            _ = try? runner.run("/usr/sbin/diskutil", ["eject", "/dev/\(bsdName)"])
+            // Eject flushes; if it fails the USB still holds unwritten data, so say so rather
+            // than reporting a clean finish the user would act on by pulling the stick.
+            let eject = try? runner.run("/usr/sbin/diskutil", ["eject", "/dev/\(bsdName)"])
+            guard let eject, eject.status == 0 else {
+                await fail("The USB was written but could not be ejected: \(eject?.stderr ?? "diskutil failed"). Eject it in Finder before unplugging.")
+                return
+            }
             await MainActor.run { self.fraction = 1; self.finished = true; self.isRunning = false }
         } catch {
             await fail("\(error)")

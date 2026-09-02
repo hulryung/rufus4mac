@@ -30,4 +30,14 @@ public struct WimTool: Sendable {
             throw WimToolError(message: "wimlib-imagex split failed (\(r.status)): \(r.stderr)")
         }
     }
+
+    /// `wimlib-imagex info <wim>`. A WIM keeps its XML data and integrity table at the end of the
+    /// file, so this reads back the tail of each part and fails on a truncated one — the cheap way
+    /// to tell a complete part from one whose write was cut short.
+    public func info(wim: String) throws {
+        let r = try runner.run(imagexPath, ["info", wim])
+        if r.status != 0 {
+            throw WimToolError(message: "\((wim as NSString).lastPathComponent) is unreadable (\(r.status)): \(r.stderr)")
+        }
+    }
 }

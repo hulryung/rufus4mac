@@ -84,6 +84,21 @@ usually larger than FAT32's 4 GB per-file limit. So:
 
    So `UILanguage` follows the image while `SystemLocale`/`UserLocale`/`InputLocale` follow the Mac.
 
+### Why the Windows path verifies itself
+
+Neither `copyItem` nor `wimlib-imagex split` reliably reports failure when a USB stops accepting
+writes — a stick that drops off the bus mid-write (a hub or dock makes this likelier) leaves a
+truncated `install.swm`, and `wimlib-imagex` still exits 0. The write then looks successful and only
+fails hours later inside Windows Setup with **0x8007000D**, far from any evidence.
+
+So `copyAndSplit` checks its own work before reporting success: `verifyCopy` compares every copied
+file's size against the ISO, and `verifySplit` requires the `.swm` parts to total at least 97% of
+the source (splitting rewrites each part's header and XML, so the parts come in slightly under),
+each to stay under FAT32's 4 GiB file limit, and each to survive `wimlib-imagex info` — a WIM keeps
+its XML data at the *end* of the file, so that call fails on a part whose tail never reached the
+device. `WindowsWriter` likewise surfaces a failed `diskutil eject` instead of reporting a clean
+finish, since an unejected volume may still hold unflushed data.
+
 Design: `docs/superpowers/specs/2026-06-01-rufus4mac-phase2-windows-design.md`.
 
 ### Format mode

@@ -5,8 +5,10 @@ import SystemTools
 final class FakeRunner: ProcessRunner, @unchecked Sendable {
     var calls: [(String, [String])] = []
     var result = ProcessResult(status: 0, stdout: "", stderr: "")
+    /// Lets a test stand in for the command's side effects (e.g. `split` writing .swm parts).
+    var onRun: ((String, [String]) -> Void)?
     func run(_ executable: String, _ arguments: [String]) throws -> ProcessResult {
-        calls.append((executable, arguments)); return result
+        calls.append((executable, arguments)); onRun?(executable, arguments); return result
     }
 }
 
