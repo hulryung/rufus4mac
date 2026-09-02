@@ -23,7 +23,10 @@ NOTARY_PROFILE="rufus4mac-notary"
 BUILD_DIR="build"
 DERIVED="$BUILD_DIR/DerivedData"
 APP="$BUILD_DIR/Release/RufusApp.app"
-DMG="$BUILD_DIR/rufus4mac.dmg"
+# Version comes from project.yml so the DMG matches the name the README tells people to download.
+VERSION="$(awk -F'"' '/MARKETING_VERSION/{print $2; exit}' project.yml)"
+[ -n "$VERSION" ] || { echo "could not read MARKETING_VERSION from project.yml" >&2; exit 1; }
+DMG="$BUILD_DIR/rufus4mac-$VERSION.dmg"
 
 echo "==> Regenerating project"
 xcodegen generate
@@ -62,7 +65,7 @@ codesign --verify --deep --strict --verbose=2 "$APP"
 
 echo "==> Creating DMG"
 rm -f "$DMG"
-hdiutil create -volname rufus4mac -srcfolder "$APP" -ov -format UDZO "$DMG"
+hdiutil create -volname "rufus4mac $VERSION" -srcfolder "$APP" -ov -format UDZO "$DMG"
 codesign --force --timestamp --sign "$IDENTITY" "$DMG"
 
 echo "==> Notarizing (this can take a few minutes)"
