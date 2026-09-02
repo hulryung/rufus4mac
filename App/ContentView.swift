@@ -21,6 +21,8 @@ struct ContentView: View {
     @AppStorage("winSkipPrivacy") private var winSkipPrivacy = false
     @AppStorage("winUseRegion") private var winUseRegion = false
     @AppStorage("winDisableBitLocker") private var winDisableBitLocker = false
+    /// Off by default: the MIT splitter is verified against wimlib but not yet by a real install.
+    @AppStorage("useNativeWimSplit") private var useNativeWimSplit = false
     @AppStorage("fmtScheme") private var fmtSchemeRaw = FormatOptions.PartitionScheme.gpt.rawValue
     @AppStorage("fmtFileSystem") private var fmtFSRaw = FormatOptions.FileSystem.exfat.rawValue
     @AppStorage("fmtLabel") private var fmtLabel = "RUFUS4MAC"
@@ -133,6 +135,15 @@ struct ContentView: View {
                         if winLocalAccount {
                             TextField("Username", text: $winUsername)
                                 .textFieldStyle(.roundedBorder)
+                        }
+                        Divider().padding(.vertical, 2)
+                        Toggle("Split install.wim without wimlib (experimental)",
+                               isOn: $useNativeWimSplit)
+                        if useNativeWimSplit {
+                            Text("Uses the built-in MIT-licensed splitter instead of the bundled "
+                                 + "wimlib. Verified against wimlib, but not yet by a real Windows install.")
+                                .font(.caption).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                     .toggleStyle(.checkbox).font(.callout)
@@ -286,7 +297,9 @@ struct ContentView: View {
         }
         guard let url = image.imageURL else { return }
         if image.isWindows {
-            winWriter.start(isoPath: url.path, bsdName: disk.bsdName, customization: windowsCustomization())
+            winWriter.start(isoPath: url.path, bsdName: disk.bsdName,
+                            customization: windowsCustomization(),
+                            useNativeSplitter: useNativeWimSplit)
         } else if let hash = image.sha256Base64 {
             writer.startWrite(imagePath: url.path, bsdName: disk.bsdName, sha256Base64: hash, verify: verifyAfterWrite)
         }

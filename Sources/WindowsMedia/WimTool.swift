@@ -6,7 +6,7 @@ public struct WimToolError: Error, CustomStringConvertible {
     public var description: String { message }
 }
 
-public struct WimTool: Sendable {
+public struct WimTool: WimSplitting {
     let runner: ProcessRunner
     let imagexPath: String
 
@@ -52,6 +52,10 @@ public struct WimTool: Sendable {
         else { return nil }
         return min(done / total, 1)
     }
+
+    public var name: String { "wimlib-imagex" }
+
+    public func validatePart(at path: String) throws { try info(wim: path) }
 
     /// `wimlib-imagex info <wim>`. A WIM keeps its XML data and integrity table at the end of the
     /// file, so this reads back the tail of each part and fails on a truncated one — the cheap way

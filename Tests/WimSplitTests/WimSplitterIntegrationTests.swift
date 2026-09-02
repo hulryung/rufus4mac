@@ -195,3 +195,52 @@ final class WimSplitterIntegrationTests: XCTestCase {
         XCTAssertEqual(seen, seen.sorted(), "progress went backwards")
     }
 }
+
+final class ValidatePartTests: XCTestCase {
+    private var imagex: String {
+        get throws {
+            for p in ["/opt/homebrew/bin/wimlib-imagex", "/usr/local/bin/wimlib-imagex"]
+            where FileManager.default.isExecutableFile(atPath: p) { return p }
+            throw XCTSkip("wimlib-imagex not installed")
+        }
+    }
+
+    /// The blob table and XML sit at the end of a WIM, so lopping bytes off the tail — what a USB
+    /// that stops accepting writes leaves behind — must fail validation.
+    func testTruncatedPartIsRejected() throws {
+        let imagex = try imagex
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory.appendingPathComponent("vp-\(UUID().uuidString)")
+        try fm.createDirectory(at: dir.appendingPathComponent("src"), withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: dir) }
+        // Several blobs, each comfortably smaller than a part, so the split itself succeeds.
+        for i in 1...4 {
+            try Data((0..<(100 * 1024)).map { UInt8(($0 &* (i + 1)) % 251) })
+                .write(to: dir.appendingPathComponent("src/f\(i).bin"))
+        }
+        let wim = dir.appendingPathComponent("s.wim")
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: imagex)
+        p.arguments = ["capture", dir.appendingPathComponent("src").path, wim.path, "--compress=none"]
+        p.standardOutput = Pipe(); p.standardError = Pipe()
+        try p.run(); p.waitUntilExit()
+        XCTAssertEqual(p.terminationStatus, 0)
+
+        let first = dir.appendingPathComponent("out.swm")
+        _ = try WimSplitter(partSizeBytes: 300 * 1024).split(wimPath: wim.path, firstPartPath: first.path)
+        XCTAssertNoThrow(try WimSplitter.validatePart(at: first.path), "a complete part must validate")
+
+        // Cut the tail off, exactly as an interrupted write would.
+        let data = try Data(contentsOf: first)
+        try data.prefix(data.count - 200).write(to: first)
+        XCTAssertThrowsError(try WimSplitter.validatePart(at: first.path))
+    }
+
+    func testGarbageIsRejected() throws {
+        let fm = FileManager.default
+        let f = fm.temporaryDirectory.appendingPathComponent("junk-\(UUID().uuidString).swm")
+        try Data(repeating: 0xAB, count: 4096).write(to: f)
+        defer { try? fm.removeItem(at: f) }
+        XCTAssertThrowsError(try WimSplitter.validatePart(at: f.path))
+    }
+}

@@ -17,7 +17,7 @@ let package = Package(
         .target(name: "DiskDiscovery"),
         .target(name: "TestSupport"),
         .target(name: "SystemTools"),
-        .target(name: "WindowsMedia", dependencies: ["SystemTools"]),
+        .target(name: "WindowsMedia", dependencies: ["SystemTools", "WimSplit"]),
         .target(name: "DiskFormat", dependencies: ["SystemTools"]),
         // MIT-licensed; see Sources/WimSplit/LICENSE. Deliberately dependency-free.
         .target(name: "WimSplit", exclude: ["LICENSE", "README.md"]),

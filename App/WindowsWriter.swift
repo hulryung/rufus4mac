@@ -11,9 +11,13 @@ final class WindowsWriter: NSObject, ObservableObject {
     @Published var isRunning: Bool = false
     @Published var errorText: String?
 
-    func start(isoPath: String, bsdName: String, customization: WindowsCustomization) {
+    func start(isoPath: String, bsdName: String, customization: WindowsCustomization,
+               useNativeSplitter: Bool = false) {
         phase = "preparing"; fraction = 0; finished = false; isRunning = true; errorText = nil
-        Task.detached { [weak self] in await self?.run(isoPath: isoPath, bsdName: bsdName, customization: customization) }
+        Task.detached { [weak self] in
+            await self?.run(isoPath: isoPath, bsdName: bsdName, customization: customization,
+                            useNativeSplitter: useNativeSplitter)
+        }
     }
 
     private nonisolated func set(_ phase: String, _ fraction: Double) async {
@@ -42,14 +46,23 @@ final class WindowsWriter: NSObject, ObservableObject {
         return nil
     }
 
-    private nonisolated func run(isoPath: String, bsdName: String, customization: WindowsCustomization) async {
+    private nonisolated func run(isoPath: String, bsdName: String, customization: WindowsCustomization,
+                                 useNativeSplitter: Bool) async {
         let runner = SystemProcessRunner()
         let inspector = ISOInspector(runner: runner)
-        let bundledDir = Bundle.main.resourceURL?.appendingPathComponent("wimlib").path
-        guard let imagex = WimTool.locateImagex(bundledDir: bundledDir) else {
-            await fail("Bundled wimlib-imagex not found."); return
+        // The MIT-licensed splitter needs no external binary; wimlib is only located when it is the
+        // one actually being used, so a missing bundle can't block the native path.
+        let splitter: any WimSplitting
+        if useNativeSplitter {
+            splitter = NativeWimSplitter()
+        } else {
+            let bundledDir = Bundle.main.resourceURL?.appendingPathComponent("wimlib").path
+            guard let imagex = WimTool.locateImagex(bundledDir: bundledDir) else {
+                await fail("Bundled wimlib-imagex not found."); return
+            }
+            splitter = WimTool(runner: runner, imagexPath: imagex)
         }
-        let writer = WindowsUSBWriter(runner: runner, wim: WimTool(runner: runner, imagexPath: imagex))
+        let writer = WindowsUSBWriter(runner: runner, wim: splitter)
         do {
             let info = try inspector.mountAndInspect(isoPath: isoPath)
             defer { inspector.detach(mountPoint: info.mountPoint) }

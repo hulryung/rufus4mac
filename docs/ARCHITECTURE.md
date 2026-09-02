@@ -93,6 +93,20 @@ progress callback. `SystemProcessRunner` therefore reads stdout in chunks rather
 stderr keeps draining on its own queue so neither pipe can fill and deadlock. Without this the UI
 sits at 0% for the whole split and looks hung.
 
+### Splitting: wimlib or WimSplit
+
+`WindowsUSBWriter` takes any `WimSplitting`. Two implementations exist:
+
+- **`WimTool`** shells out to the bundled `wimlib-imagex` (GPLv3+). Still the default.
+- **`NativeWimSplitter`** wraps `Sources/WimSplit`, an MIT-licensed splitter with no external
+  binary and no compression codec — see that directory's README for the format and the evidence.
+
+The app exposes the choice as *Split install.wim without wimlib (experimental)*, off by default.
+Once a real Windows install from a natively-split USB is confirmed, the native path can become the
+default and wimlib can leave the bundle, taking the GPL obligations with it. Note that WimSplit
+refuses solid (ESD-style) WIMs, which wimlib can still handle, so that limitation has to be covered
+before the switch — an ISO converted from an ESD is the case to watch.
+
 ### Why the Windows path verifies itself
 
 Neither `copyItem` nor `wimlib-imagex split` reliably reports failure when a USB stops accepting

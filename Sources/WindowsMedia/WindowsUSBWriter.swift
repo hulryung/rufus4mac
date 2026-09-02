@@ -3,11 +3,19 @@ import SystemTools
 
 public final class WindowsUSBWriter {
     let runner: ProcessRunner
-    let wim: WimTool
-    /// install.wim larger than this (bytes) is split for FAT32. 4000 MB.
-    let splitThreshold: UInt64 = 4000 * 1024 * 1024
+    let wim: any WimSplitting
+    /// install.wim larger than this (bytes) is split for FAT32.
+    let splitThreshold: UInt64
+    /// Part size handed to the splitter, in MiB. Stays under FAT32's 4 GiB file limit.
+    let splitChunkMB: Int
 
-    public init(runner: ProcessRunner, wim: WimTool) { self.runner = runner; self.wim = wim }
+    public init(runner: ProcessRunner, wim: any WimSplitting,
+                splitThreshold: UInt64 = 4000 * 1024 * 1024, splitChunkMB: Int = 4000) {
+        self.runner = runner
+        self.wim = wim
+        self.splitThreshold = splitThreshold
+        self.splitChunkMB = splitChunkMB
+    }
 
     /// Format the whole disk as MBR + a single FAT32 volume named `volumeName`.
     ///
@@ -68,7 +76,7 @@ public final class WindowsUSBWriter {
             let outDir = (usbMountPoint as NSString).appendingPathComponent("sources")
             try fm.createDirectory(atPath: outDir, withIntermediateDirectories: true)
             let outSWM = (outDir as NSString).appendingPathComponent("install.swm")
-            try wim.split(wim: srcWim, outFirstSWM: outSWM, chunkMB: 4000,
+            try wim.split(wim: srcWim, outFirstSWM: outSWM, chunkMB: splitChunkMB,
                           progress: { progress("splitting", $0) })
             try verifySplit(outDir: outDir, sourceSizeBytes: installImageSizeBytes)
             progress("splitting", 1)
@@ -121,7 +129,7 @@ public final class WindowsUSBWriter {
                 throw WimToolError(message: "\(name) is \(size) bytes, over FAT32's 4 GB file limit.")
             }
             total += size
-            try wim.info(wim: full)   // catches a part whose tail never made it to the device
+            try wim.validatePart(at: full)   // catches a part whose tail never made it to the device
         }
         let minimum = sourceSizeBytes / 100 * 97
         if total < minimum {

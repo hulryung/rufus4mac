@@ -180,6 +180,23 @@ public struct WimSplitter: Sendable {
 
     // MARK: - helpers
 
+    /// Read a written part back far enough to prove its tail reached the device.
+    ///
+    /// A WIM keeps its blob table and XML at the *end* of the file, so parsing them fails on a part
+    /// whose write was cut short — which is the cheap way to catch a USB that stopped accepting
+    /// data while still reporting success.
+    public static func validatePart(at path: String) throws {
+        let fh = try FileHandle(forReadingFrom: URL(fileURLWithPath: path))
+        defer { try? fh.close() }
+        let header = try WimHeader(parsing: try read(fh, at: 0, count: WimHeader.byteCount))
+        guard header.partNumber >= 1, header.totalParts >= header.partNumber else {
+            throw WimError("\((path as NSString).lastPathComponent) claims to be part \(header.partNumber) of \(header.totalParts)")
+        }
+        let table = try read(fh, at: header.blobTable.offset, count: Int(header.blobTable.size))
+        _ = try parseBlobTable(table)
+        _ = try read(fh, at: header.xmlData.offset, count: Int(header.xmlData.size))
+    }
+
     /// Refuse a solid (ESD-style) WIM.
     ///
     /// Copying blobs verbatim is what lets this work without a decompressor, and that holds only
