@@ -138,9 +138,16 @@ drivers from that name during installation, and these are meant to be run by han
 
 A profile is just a directory under `~/Library/Application Support/rufus4mac/Drivers`, so the
 library is inspectable and editable in Finder — drop an installer into a folder and it belongs to
-that model. Nothing parses the files. The app deliberately ships no catalogue of per-model download
-URLs: Samsung distributes drivers through its own updater rather than stable links, so a built-in
-catalogue would be guesswork that rots.
+that model. Profiles are enumerated recursively, so a whole extracted driver set (INF/SYS/CAT in a
+directory) keeps its shape on the USB. Nothing parses the files.
+
+Files are added from disk or fetched from a link. The app ships **no catalogue of per-model download
+URLs**, and that is deliberate: `samsungsvc.co.kr` builds its download links in JavaScript,
+`samsung.com`'s model pages carry no direct file links, and the Galaxy Book Download Center — the one
+place that does serve per-model drivers — loads its catalogue from an undocumented API and is
+self-described as open beta. Any table of URLs would be reverse-engineered guesswork that rots.
+`downloadcenter.samsung.com` does serve files without a login once you have a link (verified: HTTP
+200, no auth), which is why pasting one works even though generating one does not.
 
 ### Why the Windows path verifies itself
 

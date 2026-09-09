@@ -30,6 +30,10 @@ struct ContentView: View {
     @State private var newProfileName = ""
     @State private var pendingDriverFiles: [URL] = []
     @State private var driverError: String?
+    @State private var downloadingDrivers = false
+    @State private var driverURLText = ""
+    @State private var driverURLModel = ""
+    @State private var driverDownloading = false
     @State private var clock = ProgressClock()
     /// Ticks once a second so elapsed time keeps moving between progress callbacks.
     @State private var now = Date()
@@ -187,6 +191,10 @@ struct ContentView: View {
                         }
                         HStack(spacing: 8) {
                             Button("Add files…", action: pickDriverFiles)
+                            Button("From link…") {
+                                driverURLText = ""; driverURLModel = ""
+                                driverError = nil; downloadingDrivers = true
+                            }
                             Button("Show in Finder") {
                                 drivers.refresh()
                                 NSWorkspace.shared.activateFileViewerSelecting([DriverLibrary.rootURL])
@@ -257,6 +265,7 @@ struct ContentView: View {
                                     set: { if !$0 { pendingDriverFiles = [] } })) {
             driverNamingSheet
         }
+        .sheet(isPresented: $downloadingDrivers) { driverDownloadSheet }
         .alert("Erase \(diskVM.selected?.model ?? "")?", isPresented: $showConfirm) {
             Button("Cancel", role: .cancel) {}
             Button(formatMode ? "Erase and Format" : "Erase and Write", role: .destructive) { startWrite() }
@@ -308,6 +317,61 @@ struct ContentView: View {
         newProfileName = ""
         driverError = nil
         pendingDriverFiles = panel.urls
+    }
+
+    /// Samsung builds its download links dynamically, so there is no model list to ship — paste
+    /// the link from the download centre instead.
+    private var driverDownloadSheet: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Download drivers").font(.headline)
+            Text("Paste the link to the driver file. Samsung's download centre builds links "
+                 + "dynamically, so right-click the download and copy its address.")
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            TextField("https://…", text: $driverURLText)
+                .textFieldStyle(.roundedBorder).disabled(driverDownloading)
+            TextField("Model, e.g. NT950XEV", text: $driverURLModel)
+                .textFieldStyle(.roundedBorder).disabled(driverDownloading)
+            if let e = driverError {
+                Text(e).font(.caption).foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            HStack {
+                if driverDownloading {
+                    ProgressView().controlSize(.small)
+                    Text("Downloading…").font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button("Cancel") { downloadingDrivers = false; driverError = nil }
+                    .disabled(driverDownloading)
+                Button("Download", action: startDriverDownload)
+                    .buttonStyle(.borderedProminent).tint(accent)
+                    .disabled(driverDownloading
+                              || DriverLibrary.sanitize(driverURLModel).isEmpty
+                              || driverURLText.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        }
+        .padding(20).frame(width: 420)
+    }
+
+    private func startDriverDownload() {
+        guard let url = URL(string: driverURLText.trimmingCharacters(in: .whitespaces)) else {
+            driverError = DriverLibraryError.badURL.localizedDescription
+            return
+        }
+        driverDownloading = true
+        driverError = nil
+        Task {
+            do {
+                try await drivers.download(from: url, toProfileNamed: driverURLModel,
+                                           progress: { _ in })
+                driverDownloading = false
+                downloadingDrivers = false
+            } catch {
+                driverDownloading = false
+                driverError = error.localizedDescription
+            }
+        }
     }
 
     private func commitDriverFiles() {

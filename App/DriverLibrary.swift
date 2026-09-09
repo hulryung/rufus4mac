@@ -60,6 +60,42 @@ final class DriverLibrary: ObservableObject {
         refresh()
     }
 
+    /// Fetch a driver package straight into a profile.
+    ///
+    /// There is no per-model catalogue to ship: Samsung's download centre builds its links
+    /// dynamically and is still in open beta, so any table of URLs would be guesswork that rots.
+    /// The host does serve files without a login once you have the link, though, so pasting one
+    /// from the download centre works.
+    func download(from url: URL, toProfileNamed model: String,
+                  progress: @escaping (Double) -> Void) async throws {
+        let name = Self.sanitize(model)
+        guard !name.isEmpty else { throw DriverLibraryError.emptyName }
+        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else {
+            throw DriverLibraryError.badURL
+        }
+        let (temp, response) = try await URLSession.shared.download(for: URLRequest(url: url),
+                                                                    delegate: nil)
+        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+            try? FileManager.default.removeItem(at: temp)
+            throw DriverLibraryError.httpStatus(http.statusCode)
+        }
+        // Content-Disposition when the server offers one, else the URL's own last component.
+        var filename = response.suggestedFilename ?? url.lastPathComponent
+        if filename.isEmpty || filename == "/" { filename = "driver.bin" }
+
+        let dir = Self.rootURL.appendingPathComponent(name, isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let dst = dir.appendingPathComponent(filename)
+        if FileManager.default.fileExists(atPath: dst.path) {
+            try FileManager.default.removeItem(at: dst)
+        }
+        try FileManager.default.moveItem(at: temp, to: dst)
+        progress(1)
+        selected.insert(name)
+        persist()
+        refresh()
+    }
+
     func delete(profileNamed name: String) {
         try? FileManager.default.removeItem(at: Self.rootURL.appendingPathComponent(name))
         selected.remove(name)
@@ -82,7 +118,13 @@ final class DriverLibrary: ObservableObject {
 
 enum DriverLibraryError: LocalizedError {
     case emptyName
+    case badURL
+    case httpStatus(Int)
     var errorDescription: String? {
-        switch self { case .emptyName: return "Enter a name for the model." }
+        switch self {
+        case .emptyName: return "Enter a name for the model."
+        case .badURL: return "Enter an http or https link to the driver file."
+        case .httpStatus(let code): return "The server answered \(code). Check the link."
+        }
     }
 }
