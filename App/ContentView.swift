@@ -26,6 +26,9 @@ struct ContentView: View {
     @AppStorage("fmtScheme") private var fmtSchemeRaw = FormatOptions.PartitionScheme.gpt.rawValue
     @AppStorage("fmtFileSystem") private var fmtFSRaw = FormatOptions.FileSystem.exfat.rawValue
     @AppStorage("fmtLabel") private var fmtLabel = "RUFUS4MAC"
+    @State private var clock = ProgressClock()
+    /// Ticks once a second so elapsed time keeps moving between progress callbacks.
+    @State private var now = Date()
 
     /// Brand accent — matches the app icon's orange.
     private let accent = Color(red: 0.90, green: 0.32, blue: 0.06)
@@ -178,6 +181,13 @@ struct ContentView: View {
         .frame(minWidth: 400, idealWidth: 420, maxWidth: 480, alignment: .topLeading)
         .fixedSize(horizontal: false, vertical: true)
         .onAppear { diskVM.refresh() }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { now = $0 }
+        .onChange(of: activeRunning) { running in
+            if running { clock.start() } else { clock.finish() }
+            now = Date()
+        }
+        .onChange(of: activeFraction) { f in clock.observe(phase: activePhase, fraction: f) }
+        .onChange(of: activePhase) { p in clock.observe(phase: p, fraction: activeFraction) }
         .fileImporter(isPresented: $importing,
                       allowedContentTypes: imageTypes,
                       allowsMultipleSelection: false) { result in
@@ -239,9 +249,26 @@ struct ContentView: View {
                     Spacer()
                     Text("\(pct)%").monospacedDigit().foregroundStyle(.secondary)
                 }
+                if activeFinished, activeError == nil, let e = clock.elapsed(at: now) {
+                    Spacer()
+                    Text("in \(ProgressClock.format(e))")
+                        .monospacedDigit().font(.callout).foregroundStyle(.secondary)
+                }
             }
             if !activeFinished || activeError == nil {
                 ProgressView(value: activeFinished ? 1 : activeFraction).tint(accent)
+            }
+            if !activeFinished, activeError == nil, let e = clock.elapsed(at: now) {
+                HStack(spacing: 4) {
+                    Text("\(ProgressClock.format(e)) elapsed")
+                    if let r = clock.remaining(at: now) {
+                        Text("·")
+                        Text("about \(ProgressClock.format(r)) left")
+                    } else {
+                        Text("· estimating…")
+                    }
+                }
+                .font(.caption).monospacedDigit().foregroundStyle(.secondary)
             }
         }
     }

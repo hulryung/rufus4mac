@@ -64,14 +64,16 @@ public final class WindowsUSBWriter {
             try fm.createDirectory(atPath: (dst as NSString).deletingLastPathComponent,
                                    withIntermediateDirectories: true)
             do {
-                try fm.copyItem(atPath: (mountedISORoot as NSString).appendingPathComponent(e.rel), toPath: dst)
+                try Self.copyFile(from: (mountedISORoot as NSString).appendingPathComponent(e.rel),
+                                  to: dst, size: e.size) { moved in
+                    done += moved
+                    progress("copying", total == 0 ? 1 : Double(done) / Double(total))
+                }
             } catch {
                 // A bare Cocoa error names no file, which makes a copy failure unreadable
                 // ("Error Domain=NSCocoaErrorDomain Code=513"). Say which file it was.
                 throw WimToolError(message: "Could not copy \(e.rel) from the image: \(error.localizedDescription)")
             }
-            done += e.size
-            progress("copying", total == 0 ? 1 : Double(done) / Double(total))
         }
 
         try verifyCopy(entries: entries, usbMountPoint: usbMountPoint, skipping: willSplit ? installImageRelPath : nil)
@@ -144,6 +146,40 @@ public final class WindowsUSBWriter {
                 bytes, expected at least \(minimum). The USB may have disconnected during the write \
                 — try a port on the Mac itself rather than a hub or dock, then write again.
                 """)
+        }
+    }
+
+    /// Files this size or larger are copied in chunks so progress moves while they are in flight.
+    static let chunkedCopyThreshold: UInt64 = 16 << 20
+    static let copyChunkSize = 4 << 20
+
+    /// Copy one file, reporting bytes as they move.
+    ///
+    /// `FileManager.copyItem` reports nothing until it returns, and a Windows ISO is mostly one
+    /// enormous file — `install.wim` is often ~90% of the bytes. Copying it with `copyItem` holds
+    /// the progress bar still for minutes and then jumps it most of the way in one step, which
+    /// reads as a hang. Large files therefore move in chunks; small ones are not worth the
+    /// bookkeeping and go through `copyItem` as before.
+    static func copyFile(from src: String, to dst: String, size: UInt64,
+                         onCopied: (UInt64) -> Void) throws {
+        let fm = FileManager.default
+        guard size >= chunkedCopyThreshold else {
+            try fm.copyItem(atPath: src, toPath: dst)
+            onCopied(size)
+            return
+        }
+        if fm.fileExists(atPath: dst) { try fm.removeItem(atPath: dst) }
+        guard fm.createFile(atPath: dst, contents: nil) else {
+            throw WimToolError(message: "could not create \(dst)")
+        }
+        let input = try FileHandle(forReadingFrom: URL(fileURLWithPath: src))
+        defer { try? input.close() }
+        let output = try FileHandle(forWritingTo: URL(fileURLWithPath: dst))
+        defer { try? output.close() }
+        while true {
+            guard let chunk = try input.read(upToCount: copyChunkSize), !chunk.isEmpty else { break }
+            try output.write(contentsOf: chunk)
+            onCopied(UInt64(chunk.count))
         }
     }
 

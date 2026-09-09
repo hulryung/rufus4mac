@@ -114,6 +114,18 @@ mode 000, so copying it fails outright; UUP-generated Windows ISOs list one in t
 where Microsoft's retail ISOs do not, which is why only some images hit it. It is excluded in
 `fileList` so it stays out of the byte total and of `verifyCopy` as well as the copy itself.
 
+Large files are copied in chunks rather than through `FileManager.copyItem`, which reports nothing
+until it returns. A Windows ISO is mostly one enormous file — `install.wim` is often ~90% of the
+bytes — so `copyItem` left the progress bar parked (13%, in one report) for minutes and then leapt
+it to 96% when that single file landed. Files at or above 16 MB now move 4 MB at a time and report
+as they go; smaller ones are not worth the bookkeeping.
+
+`ProgressClock` (in `RufusCore`) turns those callbacks into an elapsed time and a remaining-time
+estimate for the UI. The estimate comes from the *current phase's* rate and resets when the phase
+changes: the Windows path runs "copying" 0…1 and then "splitting" 0…1 again, at very different
+speeds, so one rate carried across them would be wrong rather than merely coarse. It stays hidden
+until the phase has run three seconds and moved one percent, since anything sooner is noise.
+
 ### Why the Windows path verifies itself
 
 Neither `copyItem` nor `wimlib-imagex split` reliably reports failure when a USB stops accepting
