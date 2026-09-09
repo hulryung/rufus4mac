@@ -27,7 +27,6 @@ struct ContentView: View {
     @AppStorage("fmtFileSystem") private var fmtFSRaw = FormatOptions.FileSystem.exfat.rawValue
     @AppStorage("fmtLabel") private var fmtLabel = "RUFUS4MAC"
     @StateObject private var drivers = DriverLibrary()
-    @State private var addingDrivers = false
     @State private var newProfileName = ""
     @State private var pendingDriverFiles: [URL] = []
     @State private var driverError: String?
@@ -187,7 +186,7 @@ struct ContentView: View {
                             }
                         }
                         HStack(spacing: 8) {
-                            Button("Add model…") { addingDrivers = true }
+                            Button("Add files…", action: pickDriverFiles)
                             Button("Show in Finder") {
                                 drivers.refresh()
                                 NSWorkspace.shared.activateFileViewerSelecting([DriverLibrary.rootURL])
@@ -254,12 +253,6 @@ struct ContentView: View {
                 Task { await image.computeHash() }
             }
         }
-        .fileImporter(isPresented: $addingDrivers, allowedContentTypes: [.item],
-                      allowsMultipleSelection: true) { result in
-            guard case .success(let urls) = result, !urls.isEmpty else { return }
-            pendingDriverFiles = urls
-            newProfileName = ""
-        }
         .sheet(isPresented: Binding(get: { !pendingDriverFiles.isEmpty },
                                     set: { if !$0 { pendingDriverFiles = [] } })) {
             driverNamingSheet
@@ -299,6 +292,22 @@ struct ContentView: View {
             }
         }
         .padding(20).frame(width: 380)
+    }
+
+    /// AppKit's panel rather than SwiftUI's `.fileImporter`: only one file importer can be attached
+    /// to a view, and the image picker already holds it — a second one simply never opens. The panel
+    /// also lets a whole extracted driver folder be chosen, not just loose installers.
+    private func pickDriverFiles() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.message = "Choose the driver installers or folders for this model"
+        panel.prompt = "Add"
+        guard panel.runModal() == .OK, !panel.urls.isEmpty else { return }
+        newProfileName = ""
+        driverError = nil
+        pendingDriverFiles = panel.urls
     }
 
     private func commitDriverFiles() {

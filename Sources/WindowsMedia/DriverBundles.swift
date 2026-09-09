@@ -9,7 +9,8 @@ import Foundation
 /// the case Samsung's own support pages tell you to solve with a USB stick.
 public struct DriverProfile: Sendable, Equatable, Identifiable, Comparable {
     public var name: String
-    public var files: [String]          // file names, relative to the profile directory
+    /// Paths relative to the profile directory, so an extracted driver folder keeps its shape.
+    public var files: [String]
     public var totalSize: UInt64
 
     public var id: String { name }
@@ -39,15 +40,32 @@ public enum DriverStore {
             let dir = (root as NSString).appendingPathComponent(name)
             guard fm.fileExists(atPath: dir, isDirectory: &isDir), isDir.boolValue,
                   !name.hasPrefix(".") else { return nil }
-            let files = ((try? fm.contentsOfDirectory(atPath: dir)) ?? [])
-                .filter { !$0.hasPrefix(".") }
-                .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+            let files = filesUnder(dir)
             let size = files.reduce(UInt64(0)) { sum, f in
                 let p = (dir as NSString).appendingPathComponent(f)
                 return sum + (((try? fm.attributesOfItem(atPath: p))?[.size] as? NSNumber)?.uint64Value ?? 0)
             }
             return DriverProfile(name: name, files: files, totalSize: size)
         }.sorted()
+    }
+
+    /// Every file under `dir`, recursively, as paths relative to it.
+    ///
+    /// The store is meant to be edited in Finder, so a profile may well hold a whole extracted
+    /// driver folder rather than a flat set of installers. Listing only the top level would report
+    /// such a folder as a zero-byte "file" and then fail to copy it.
+    static func filesUnder(_ dir: String) -> [String] {
+        let fm = FileManager.default
+        guard let en = fm.enumerator(atPath: dir) else { return [] }
+        var out: [String] = []
+        for case let rel as String in en {
+            if (rel as NSString).lastPathComponent.hasPrefix(".") { continue }
+            var isDir: ObjCBool = false
+            let full = (dir as NSString).appendingPathComponent(rel)
+            guard fm.fileExists(atPath: full, isDirectory: &isDir), !isDir.boolValue else { continue }
+            out.append(rel)
+        }
+        return out.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
     }
 
     /// Copy the named profiles onto the USB as `Drivers/<name>/…`, reporting bytes as they move.
@@ -84,6 +102,8 @@ public enum DriverStore {
             for f in p.files {
                 let src = (srcDir as NSString).appendingPathComponent(f)
                 let dst = (dstDir as NSString).appendingPathComponent(f)
+                try fm.createDirectory(atPath: (dst as NSString).deletingLastPathComponent,
+                                       withIntermediateDirectories: true)
                 let size = ((try? fm.attributesOfItem(atPath: src))?[.size] as? NSNumber)?.uint64Value ?? 0
                 do {
                     try WindowsUSBWriter.copyFile(from: src, to: dst, size: size) { moved in

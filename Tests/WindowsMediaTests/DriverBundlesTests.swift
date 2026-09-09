@@ -109,6 +109,46 @@ final class DriverBundlesTests: XCTestCase {
         XCTAssertEqual(seen, seen.sorted(), "progress went backwards")
     }
 
+    // MARK: - nested folders
+
+    /// The store is edited in Finder too, so a profile may hold a whole extracted driver folder.
+    /// Listing only the top level reported that folder as a zero-byte file and then failed to copy.
+    func testProfileHoldingAFolderIsEnumeratedRecursively() throws {
+        let fm = FileManager.default
+        let deep = root.appendingPathComponent("NT950XEV/WiFi/Wireless1")
+        try fm.createDirectory(at: deep, withIntermediateDirectories: true)
+        try Data(count: 30).write(to: deep.appendingPathComponent("net.inf"))
+        try Data(count: 40).write(to: deep.appendingPathComponent("net.sys"))
+        try Data(count: 20).write(to: root.appendingPathComponent("NT950XEV/readme.txt"))
+
+        let p = DriverStore.profiles(in: root.path)[0]
+        XCTAssertEqual(p.files, ["readme.txt", "WiFi/Wireless1/net.inf", "WiFi/Wireless1/net.sys"])
+        XCTAssertEqual(p.totalSize, 90)
+    }
+
+    func testNestedFilesKeepTheirShapeOnTheUSB() throws {
+        let fm = FileManager.default
+        let deep = root.appendingPathComponent("NT950XEV/WiFi/Wireless1")
+        try fm.createDirectory(at: deep, withIntermediateDirectories: true)
+        let payload = Data((0..<777).map { UInt8($0 % 251) })
+        try payload.write(to: deep.appendingPathComponent("net.inf"))
+
+        let copied = try DriverStore.copy(profileNames: ["NT950XEV"], from: root.path, to: usb.path)
+        let landed = usb.appendingPathComponent("Drivers/NT950XEV/WiFi/Wireless1/net.inf")
+        XCTAssertTrue(fm.fileExists(atPath: landed.path))
+        XCTAssertEqual(try Data(contentsOf: landed), payload)
+        XCTAssertNoThrow(try DriverStore.verify(profiles: copied, root: root.path, usbRoot: usb.path))
+    }
+
+    func testDotFilesNestedDeepAreIgnored() throws {
+        let fm = FileManager.default
+        let deep = root.appendingPathComponent("NT950XEV/sub")
+        try fm.createDirectory(at: deep, withIntermediateDirectories: true)
+        try Data(count: 10).write(to: deep.appendingPathComponent("net.inf"))
+        try Data(count: 3).write(to: deep.appendingPathComponent(".DS_Store"))
+        XCTAssertEqual(DriverStore.profiles(in: root.path)[0].files, ["sub/net.inf"])
+    }
+
     // MARK: - verification
 
     func testVerifyAcceptsAGoodCopy() throws {
