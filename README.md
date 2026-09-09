@@ -53,6 +53,10 @@ The library lives in `~/Library/Application Support/rufus4mac/Drivers`, one fold
 
 #### What the catalog covers
 
+<p align="center">
+  <img src="docs/images/drivers-catalog.png" alt="Add from catalog — the Galaxy Book model list" width="520">
+</p>
+
 | Model | Model numbers |
 |---|---|
 | Galaxy Book5 Pro | `NT960XHA`, `NT940XHA` |

@@ -192,17 +192,22 @@ struct ContentView: View {
                             }
                         }
                         HStack(spacing: 8) {
-                            Button("Add files…", action: pickDriverFiles)
-                            Button("From catalog…") {
-                                driverError = nil
-                                catalogModel = catalog?.models.first
-                                pickingModel = true
+                            // One menu rather than four buttons: the window is at most 480pt wide,
+                            // and a row of them truncated to "From cat…" and "Show in Fi…".
+                            Menu("Add") {
+                                Button("From catalog…") {
+                                    driverError = nil
+                                    catalogModel = catalog?.models.first
+                                    pickingModel = true
+                                }
+                                .disabled(catalog == nil)
+                                Button("From files…", action: pickDriverFiles)
+                                Button("From link…") {
+                                    driverURLText = ""; driverURLModel = ""
+                                    driverError = nil; downloadingDrivers = true
+                                }
                             }
-                            .disabled(catalog == nil)
-                            Button("From link…") {
-                                driverURLText = ""; driverURLModel = ""
-                                driverError = nil; downloadingDrivers = true
-                            }
+                            .fixedSize()
                             Button("Show in Finder") {
                                 drivers.refresh()
                                 NSWorkspace.shared.activateFileViewerSelecting([DriverLibrary.rootURL])
