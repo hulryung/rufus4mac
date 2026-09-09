@@ -107,6 +107,13 @@ default and wimlib can leave the bundle, taking the GPL obligations with it. Not
 refuses solid (ESD-style) WIMs, which wimlib can still handle, so that limitation has to be covered
 before the switch — an ISO converted from an ESD is the case to watch.
 
+The copy skips one thing: the **El Torito boot catalog** (`boot.catalog`). It is an ISO 9660
+structure that firmware reads from fixed sectors of an optical disc — nothing opens it by name, and
+a FAT32 USB boots from the MBR boot sector or `\EFI\BOOT\BOOTX64.EFI` instead. macOS exposes it
+mode 000, so copying it fails outright; UUP-generated Windows ISOs list one in the directory tree
+where Microsoft's retail ISOs do not, which is why only some images hit it. It is excluded in
+`fileList` so it stays out of the byte total and of `verifyCopy` as well as the copy itself.
+
 ### Why the Windows path verifies itself
 
 Neither `copyItem` nor `wimlib-imagex split` reliably reports failure when a USB stops accepting

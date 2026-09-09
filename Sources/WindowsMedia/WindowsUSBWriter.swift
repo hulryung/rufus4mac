@@ -63,7 +63,13 @@ public final class WindowsUSBWriter {
             let dst = (usbMountPoint as NSString).appendingPathComponent(e.rel)
             try fm.createDirectory(atPath: (dst as NSString).deletingLastPathComponent,
                                    withIntermediateDirectories: true)
-            try fm.copyItem(atPath: (mountedISORoot as NSString).appendingPathComponent(e.rel), toPath: dst)
+            do {
+                try fm.copyItem(atPath: (mountedISORoot as NSString).appendingPathComponent(e.rel), toPath: dst)
+            } catch {
+                // A bare Cocoa error names no file, which makes a copy failure unreadable
+                // ("Error Domain=NSCocoaErrorDomain Code=513"). Say which file it was.
+                throw WimToolError(message: "Could not copy \(e.rel) from the image: \(error.localizedDescription)")
+            }
             done += e.size
             progress("copying", total == 0 ? 1 : Double(done) / Double(total))
         }
@@ -142,7 +148,23 @@ public final class WindowsUSBWriter {
     }
 
     struct Entry { let rel: String; let size: UInt64 }
-    /// Recursively list files (relative paths) and sizes under `root`.
+
+    /// El Torito boot catalogs, which are never copied.
+    ///
+    /// The boot catalog is an ISO 9660 structure that firmware reads from fixed sectors of an
+    /// optical disc; nothing ever opens it by name, and it means nothing on a FAT32 USB, which
+    /// boots from the MBR boot sector or `\EFI\BOOT\BOOTX64.EFI`. macOS exposes it mode 000, so
+    /// copying it fails with NSFileWriteNoPermissionError — seen on UUP-generated Windows ISOs,
+    /// which list it in the directory tree where Microsoft's retail ISOs do not.
+    static let bootCatalogNames: Set<String> = ["boot.catalog", "boot.cat"]
+
+    static func isBootCatalog(_ rel: String) -> Bool {
+        bootCatalogNames.contains((rel as NSString).lastPathComponent.lowercased())
+    }
+
+    /// Recursively list files (relative paths) and sizes under `root`, skipping the boot catalog.
+    /// The exclusion happens here so the file is left out of the byte total and of `verifyCopy`
+    /// too, not just the copy loop.
     static func fileList(root: String) throws -> [Entry] {
         let fm = FileManager.default
         guard let en = fm.enumerator(atPath: root) else { return [] }
@@ -152,6 +174,7 @@ public final class WindowsUSBWriter {
             var isDir: ObjCBool = false
             fm.fileExists(atPath: full, isDirectory: &isDir)
             if isDir.boolValue { continue }
+            if isBootCatalog(rel) { continue }
             let size = ((try? fm.attributesOfItem(atPath: full))?[.size] as? NSNumber)?.uint64Value ?? 0
             out.append(Entry(rel: rel, size: size))
         }
