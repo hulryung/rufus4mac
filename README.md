@@ -31,10 +31,45 @@ For Windows ISOs you can preset **Windows User Experience** options, applied via
 `autounattend.xml`: bypass Windows 11 checks (TPM/Secure Boot/RAM/CPU), create a local account,
 skip privacy questions, match this Mac's region & language, and disable BitLocker auto-encryption.
 
-**Drivers:** a fresh Windows install with no Wi-Fi driver cannot download one. Add the installer you
-grabbed on another machine under **Drivers to carry**, name it after the model (`NT950XEV`), and tick
-it — rufus4mac copies it to `Drivers/<model>/` on the same stick. Windows Setup does not touch these;
-run them once Windows is up.
+### Carrying drivers
+
+A machine whose Wi-Fi driver is missing cannot download one — Samsung's own support pages tell you to
+fetch the driver on another PC and bring it over on a USB stick. rufus4mac puts it on the same stick
+as the installer. Pick a Windows ISO and the **Drivers to carry** section appears, with three ways to
+fill it:
+
+| | |
+|---|---|
+| **From catalog…** | Choose your Galaxy Book from the list. rufus4mac downloads the driver and checks it against the vendor's published SHA-256. |
+| **Add files…** | Point at an installer or a whole extracted driver folder you already have. |
+| **From link…** | Paste a download link and name the model. |
+
+Tick the models you want and write — they are copied to `Drivers/<model>/` on the stick, then
+size-checked like the image itself. **Windows Setup does not touch them:** the folder is deliberately
+not `$WinPEDriver$`, so nothing is installed during setup. Run the installer once Windows is up.
+
+The library lives in `~/Library/Application Support/rufus4mac/Drivers`, one folder per model, so
+**Show in Finder** and drop files in if you prefer — the filesystem *is* the catalogue.
+
+#### What the catalog covers
+
+| Model | Model numbers |
+|---|---|
+| Galaxy Book5 Pro | `NT960XHA`, `NT940XHA` |
+| Galaxy Book4 Pro | `NT960XGK`, `NT940XGK` |
+| Galaxy Book3 Pro | `NT960XFG`, `NT940XFG` |
+| Galaxy Book2 Pro | `NT950XED`, `NT950XEV`, `NT930XED` |
+| Galaxy Book2 | `NT750XED`, `NT550XED` |
+| Other Intel Galaxy Book | any Intel model |
+
+The catalog is keyed on the **chipset**, not the model. Samsung has no stable per-model download URL,
+but Intel does, and one Intel package drives every Intel Wi-Fi adapter from Wireless-AC 9560 through
+Wi-Fi 7 — which is every Intel-based Galaxy Book. So the model list only helps you find your machine;
+it does not decide the file, and an entry that is missing cannot give you the wrong driver. Pick
+**Other Intel Galaxy Book** if yours is not listed.
+
+> Snapdragon models (**Galaxy Book Go**, **Galaxy Book4 Edge**) are deliberately absent. Their Wi-Fi
+> is Qualcomm, and the Intel package cannot drive it.
 
 **Format mode:** select no image and the button becomes **Format** — erase a USB as **exFAT** or
 **FAT32** with **MBR/GPT** and a volume label.

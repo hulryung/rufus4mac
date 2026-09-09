@@ -338,42 +338,16 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Add from catalog").font(.headline)
             if let catalog {
-                // A visible list rather than a dropdown: the model numbers are the point — you match
-                // the sticker on the machine — and a picker hides every row but one.
-                ScrollView {
-                    VStack(spacing: 0) {
-                        ForEach(catalog.models) { m in
-                            let isSelected = catalogModel == m
-                            Button {
-                                catalogModel = m
-                            } label: {
-                                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                    Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
-                                        .foregroundStyle(isSelected ? accent : .secondary)
-                                    VStack(alignment: .leading, spacing: 1) {
-                                        Text(m.name).fontWeight(isSelected ? .semibold : .regular)
-                                        Text(m.modelNumbers)
-                                            .font(.caption).foregroundStyle(.secondary)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                    }
-                                    Spacer(minLength: 0)
-                                }
-                                .padding(.vertical, 6).padding(.horizontal, 8)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .background(isSelected ? accent.opacity(0.12) : .clear)
-                            if m.id != catalog.models.last?.id { Divider() }
-                        }
+                Picker("Model", selection: $catalogModel) {
+                    ForEach(catalog.models) { m in
+                        Text(m.name).tag(Optional(m))
                     }
                 }
-                .frame(maxHeight: 240)
-                .background(Color(nsColor: .controlBackgroundColor),
-                            in: RoundedRectangle(cornerRadius: 8))
-                .overlay(RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(Color(nsColor: .separatorColor)))
+                .labelsHidden()
 
                 if let m = catalogModel {
+                    Text(m.modelNumbers).font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                     ForEach(catalog.packages(for: m)) { p in
                         VStack(alignment: .leading, spacing: 2) {
                             Text(p.displayName).font(.callout).fontWeight(.medium)
