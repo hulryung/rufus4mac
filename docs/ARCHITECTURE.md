@@ -141,7 +141,15 @@ library is inspectable and editable in Finder — drop an installer into a folde
 that model. Profiles are enumerated recursively, so a whole extracted driver set (INF/SYS/CAT in a
 directory) keeps its shape on the USB. Nothing parses the files.
 
-Files are added from disk or fetched from a link. The app ships **no catalogue of per-model download
+Files are added from disk, fetched from a link, or picked from a small **catalogue** shipped with
+the app. The catalogue is chipset-shaped rather than model-shaped, which is what makes it
+maintainable: Samsung has no stable per-model URL, but the silicon vendors do, and one Intel package
+drives every Intel Wi-Fi adapter from Wireless-AC 9560 through Wi-Fi 7 — every Intel-based Galaxy
+Book. The model list is therefore a way to find your machine, not a mapping that decides the file,
+so an incomplete list cannot hand out the wrong driver. Snapdragon models (Galaxy Book Go) are
+excluded, their Wi-Fi being Qualcomm. Each entry pins a version, size and the vendor's published
+SHA-256, and a download that fails the hash is discarded rather than kept — it is an executable
+destined for a fresh Windows machine. The app ships **no catalogue of per-model download
 URLs**, and that is deliberate: `samsungsvc.co.kr` builds its download links in JavaScript,
 `samsung.com`'s model pages carry no direct file links, and the Galaxy Book Download Center — the one
 place that does serve per-model drivers — loads its catalogue from an undocumented API and is

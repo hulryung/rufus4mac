@@ -60,6 +60,37 @@ final class DriverLibrary: ObservableObject {
         refresh()
     }
 
+    /// Fetch a catalogued package and verify it against the vendor's published SHA-256 before it
+    /// joins the library. This is an executable that will be run on a fresh Windows machine, so a
+    /// download that does not match is discarded rather than kept.
+    func install(package: DriverPackage, forModel model: String,
+                 progress: @escaping (Double) -> Void) async throws {
+        let name = Self.sanitize(model)
+        guard !name.isEmpty else { throw DriverLibraryError.emptyName }
+        let (temp, response) = try await URLSession.shared.download(from: package.url)
+        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+            try? FileManager.default.removeItem(at: temp)
+            throw DriverLibraryError.httpStatus(http.statusCode)
+        }
+        do {
+            try DriverDownload.verify(fileAt: temp.path, matches: package.sha256)
+        } catch {
+            try? FileManager.default.removeItem(at: temp)
+            throw error
+        }
+        let dir = Self.rootURL.appendingPathComponent(name, isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let dst = dir.appendingPathComponent(package.url.lastPathComponent)
+        if FileManager.default.fileExists(atPath: dst.path) {
+            try FileManager.default.removeItem(at: dst)
+        }
+        try FileManager.default.moveItem(at: temp, to: dst)
+        progress(1)
+        selected.insert(name)
+        persist()
+        refresh()
+    }
+
     /// Fetch a driver package straight into a profile.
     ///
     /// There is no per-model catalogue to ship: Samsung's download centre builds its links

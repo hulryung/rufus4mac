@@ -1,0 +1,22 @@
+{
+  "note": "Model choice does not change the file: every Intel-based Galaxy Book takes the same Intel Wi-Fi package, so an incomplete model list cannot yield the wrong driver. Verified entries only; extend freely.",
+  "packages": [
+    {
+      "id": "intel-wifi",
+      "name": "Intel Wi-Fi driver",
+      "vendor": "Intel",
+      "version": "24.70.0",
+      "url": "https://downloadmirror.intel.com/926939/WiFi-24.70.0-Driver64-Win10-Win11.exe",
+      "sha256": "fb7f764a2b95a691b0b4825a6c60572c067c258d41958b378c5ed02f0f010ad4",
+      "sizeBytes": 54400872,
+      "covers": "Wi-Fi 7 BE200/201/202/211/213 · Wi-Fi 6E AX210/211/411 · Wi-Fi 6 AX101/201/203/231 · Wireless-AC 9260/9461/9462/9560",
+      "sourcePage": "https://www.intel.com/content/www/us/en/download/19351/windows-10-and-windows-11-wi-fi-drivers-for-intel-wireless-adapters.html"
+    }
+  ],
+  "models": [
+    { "name": "Galaxy Book2 Pro",   "modelNumbers": "NT950XED, NT950XEV, NT930XED", "packageIDs": ["intel-wifi"] },
+    { "name": "Galaxy Book2",       "modelNumbers": "NT750XED, NT550XED",           "packageIDs": ["intel-wifi"] },
+    { "name": "Galaxy Book3 Pro",   "modelNumbers": "NT940XFG, NT960XFG",           "packageIDs": ["intel-wifi"] },
+    { "name": "Other Intel Galaxy Book", "modelNumbers": "any Intel model — the package is the same", "packageIDs": ["intel-wifi"] }
+  ]
+}

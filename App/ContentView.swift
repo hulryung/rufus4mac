@@ -34,6 +34,8 @@ struct ContentView: View {
     @State private var driverURLText = ""
     @State private var driverURLModel = ""
     @State private var driverDownloading = false
+    @State private var pickingModel = false
+    @State private var catalogModel: CatalogModel?
     @State private var clock = ProgressClock()
     /// Ticks once a second so elapsed time keeps moving between progress callbacks.
     @State private var now = Date()
@@ -191,6 +193,12 @@ struct ContentView: View {
                         }
                         HStack(spacing: 8) {
                             Button("Add files…", action: pickDriverFiles)
+                            Button("From catalog…") {
+                                driverError = nil
+                                catalogModel = catalog?.models.first
+                                pickingModel = true
+                            }
+                            .disabled(catalog == nil)
                             Button("From link…") {
                                 driverURLText = ""; driverURLModel = ""
                                 driverError = nil; downloadingDrivers = true
@@ -266,6 +274,7 @@ struct ContentView: View {
             driverNamingSheet
         }
         .sheet(isPresented: $downloadingDrivers) { driverDownloadSheet }
+        .sheet(isPresented: $pickingModel) { catalogSheet }
         .alert("Erase \(diskVM.selected?.model ?? "")?", isPresented: $showConfirm) {
             Button("Cancel", role: .cancel) {}
             Button(formatMode ? "Erase and Format" : "Erase and Write", role: .destructive) { startWrite() }
@@ -317,6 +326,77 @@ struct ContentView: View {
         newProfileName = ""
         driverError = nil
         pendingDriverFiles = panel.urls
+    }
+
+    /// Loaded once; a missing or malformed catalogue simply hides the button rather than failing.
+    private var catalog: DriverCatalog? { try? DriverCatalog.bundled() }
+
+    /// Pick the machine, get the driver. The model does not decide the file — every Intel Galaxy
+    /// Book takes the same package — so the list is a way to find yourself, not a mapping to get
+    /// wrong.
+    private var catalogSheet: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Add from catalog").font(.headline)
+            if let catalog {
+                Picker("Model", selection: $catalogModel) {
+                    ForEach(catalog.models) { m in
+                        Text(m.name).tag(Optional(m))
+                    }
+                }
+                .labelsHidden()
+                if let m = catalogModel {
+                    Text(m.modelNumbers).font(.caption).foregroundStyle(.secondary)
+                    ForEach(catalog.packages(for: m)) { p in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(p.displayName).font(.callout).fontWeight(.medium)
+                            Text(p.covers).font(.caption).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(DriverLibrary.sizeLabel(p.sizeBytes) + " · verified against the "
+                                 + "vendor's SHA-256")
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            }
+            if let e = driverError {
+                Text(e).font(.caption).foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            HStack {
+                if driverDownloading {
+                    ProgressView().controlSize(.small)
+                    Text("Downloading and verifying…").font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button("Cancel") { pickingModel = false; driverError = nil }
+                    .disabled(driverDownloading)
+                Button("Download", action: installFromCatalog)
+                    .buttonStyle(.borderedProminent).tint(accent)
+                    .disabled(driverDownloading || catalogModel == nil)
+            }
+        }
+        .padding(20).frame(width: 440)
+    }
+
+    private func installFromCatalog() {
+        guard let catalog, let model = catalogModel else { return }
+        let packages = catalog.packages(for: model)
+        guard !packages.isEmpty else { return }
+        driverDownloading = true
+        driverError = nil
+        Task {
+            do {
+                for p in packages {
+                    try await drivers.install(package: p, forModel: model.name, progress: { _ in })
+                }
+                driverDownloading = false
+                pickingModel = false
+            } catch {
+                driverDownloading = false
+                driverError = error.localizedDescription
+            }
+        }
     }
 
     /// Samsung builds its download links dynamically, so there is no model list to ship — paste
