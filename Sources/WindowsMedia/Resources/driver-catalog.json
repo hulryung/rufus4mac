@@ -1,5 +1,5 @@
 {
-  "note": "Model choice does not change the file: every Intel-based Galaxy Book takes the same Intel Wi-Fi package, so an incomplete model list cannot yield the wrong driver. Verified entries only; extend freely.",
+  "note": "Model choice does not change the file: every Intel-based Galaxy Book takes the same Intel Wi-Fi package, so an incomplete model list cannot yield the wrong driver. Snapdragon models (Galaxy Book Go, Galaxy Book4 Edge) are deliberately absent — their Wi-Fi is Qualcomm.",
   "packages": [
     {
       "id": "intel-wifi",
@@ -14,9 +14,11 @@
     }
   ],
   "models": [
-    { "name": "Galaxy Book2 Pro",   "modelNumbers": "NT950XED, NT950XEV, NT930XED", "packageIDs": ["intel-wifi"] },
-    { "name": "Galaxy Book2",       "modelNumbers": "NT750XED, NT550XED",           "packageIDs": ["intel-wifi"] },
-    { "name": "Galaxy Book3 Pro",   "modelNumbers": "NT940XFG, NT960XFG",           "packageIDs": ["intel-wifi"] },
-    { "name": "Other Intel Galaxy Book", "modelNumbers": "any Intel model — the package is the same", "packageIDs": ["intel-wifi"] }
+    { "name": "Galaxy Book5 Pro",   "modelNumbers": "NT960XHA, NT940XHA — Core Ultra series 2, Wi-Fi 7", "packageIDs": ["intel-wifi"] },
+    { "name": "Galaxy Book4 Pro",   "modelNumbers": "NT960XGK, NT940XGK — Core Ultra",                   "packageIDs": ["intel-wifi"] },
+    { "name": "Galaxy Book3 Pro",   "modelNumbers": "NT960XFG, NT940XFG",                                "packageIDs": ["intel-wifi"] },
+    { "name": "Galaxy Book2 Pro",   "modelNumbers": "NT950XED, NT950XEV, NT930XED",                      "packageIDs": ["intel-wifi"] },
+    { "name": "Galaxy Book2",       "modelNumbers": "NT750XED, NT550XED",                                "packageIDs": ["intel-wifi"] },
+    { "name": "Other Intel Galaxy Book", "modelNumbers": "any Intel model — the package is the same",     "packageIDs": ["intel-wifi"] }
   ]
 }

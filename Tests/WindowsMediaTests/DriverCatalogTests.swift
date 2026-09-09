@@ -46,11 +46,28 @@ final class DriverCatalogTests: XCTestCase {
         XCTAssertEqual(resolved, ["intel-wifi"])
     }
 
+    /// Galaxy Book Go and Galaxy Book4 Edge are Snapdragon: their Wi-Fi is Qualcomm, which the
+    /// Intel package does not drive. Listing one would hand out a driver that cannot work.
     func testCatalogDoesNotClaimSnapdragonModels() throws {
-        // Galaxy Book Go and friends use Qualcomm Wi-Fi, which the Intel package does not drive.
         for m in try catalog().models {
-            XCTAssertFalse(m.name.localizedCaseInsensitiveContains("Go"),
-                           "\(m.name) is Snapdragon and must not map to the Intel package")
+            for arm in ["Go", "Edge", "Snapdragon"] {
+                XCTAssertFalse(m.name.localizedCaseInsensitiveContains(arm),
+                               "\(m.name) looks like an ARM model and must not map to the Intel package")
+            }
+        }
+    }
+
+    func testModelNumbersAreListedSoAUserCanMatchTheirSticker() throws {
+        for m in try catalog().models {
+            XCTAssertFalse(m.modelNumbers.isEmpty, "\(m.name) lists no model numbers")
+        }
+    }
+
+    func testCoversTheGenerationsWeVerified() throws {
+        let names = try catalog().models.map(\.name)
+        for expected in ["Galaxy Book2", "Galaxy Book2 Pro", "Galaxy Book3 Pro",
+                         "Galaxy Book4 Pro", "Galaxy Book5 Pro"] {
+            XCTAssertTrue(names.contains(expected), "\(expected) is missing from the catalogue")
         }
     }
 }
