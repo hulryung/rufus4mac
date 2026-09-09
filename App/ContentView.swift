@@ -26,6 +26,11 @@ struct ContentView: View {
     @AppStorage("fmtScheme") private var fmtSchemeRaw = FormatOptions.PartitionScheme.gpt.rawValue
     @AppStorage("fmtFileSystem") private var fmtFSRaw = FormatOptions.FileSystem.exfat.rawValue
     @AppStorage("fmtLabel") private var fmtLabel = "RUFUS4MAC"
+    @StateObject private var drivers = DriverLibrary()
+    @State private var addingDrivers = false
+    @State private var newProfileName = ""
+    @State private var pendingDriverFiles: [URL] = []
+    @State private var driverError: String?
     @State private var clock = ProgressClock()
     /// Ticks once a second so elapsed time keeps moving between progress callbacks.
     @State private var now = Date()
@@ -151,6 +156,58 @@ struct ContentView: View {
                     }
                     .toggleStyle(.checkbox).font(.callout)
                 }
+
+                field(title: "Drivers to carry", systemImage: "shippingbox") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if drivers.profiles.isEmpty {
+                            Text("No models yet. Add the driver installer you downloaded — a fresh "
+                                 + "Windows install with no Wi-Fi cannot fetch one.")
+                                .font(.caption).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            ForEach(drivers.profiles) { p in
+                                HStack(spacing: 6) {
+                                    Toggle(isOn: Binding(get: { drivers.selected.contains(p.name) },
+                                                         set: { _ in drivers.toggle(p.name) })) {
+                                        Text(p.name)
+                                    }
+                                    .toggleStyle(.checkbox)
+                                    Text("\(p.files.count) file\(p.files.count == 1 ? "" : "s") · "
+                                         + DriverLibrary.sizeLabel(p.totalSize))
+                                        .font(.caption).foregroundStyle(.secondary)
+                                    Spacer()
+                                    Button {
+                                        drivers.delete(profileNamed: p.name)
+                                    } label: {
+                                        Image(systemName: "trash")
+                                    }
+                                    .buttonStyle(.borderless).controlSize(.small)
+                                    .help("Remove \(p.name) from the library")
+                                }
+                            }
+                        }
+                        HStack(spacing: 8) {
+                            Button("Add model…") { addingDrivers = true }
+                            Button("Show in Finder") {
+                                drivers.refresh()
+                                NSWorkspace.shared.activateFileViewerSelecting([DriverLibrary.rootURL])
+                            }
+                            Spacer()
+                            Button {
+                                drivers.refresh()
+                            } label: { Image(systemName: "arrow.clockwise") }
+                                .buttonStyle(.borderless).help("Rescan the library")
+                        }
+                        .controlSize(.small).font(.callout)
+                        if !drivers.selected.isEmpty {
+                            Text("Copied to \(DriverStore.usbFolderName)/ on the USB. Not installed by "
+                                 + "Windows Setup — run them once Windows is up.")
+                                .font(.caption).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .font(.callout)
+                }
             }
 
             if oversize {
@@ -197,6 +254,16 @@ struct ContentView: View {
                 Task { await image.computeHash() }
             }
         }
+        .fileImporter(isPresented: $addingDrivers, allowedContentTypes: [.item],
+                      allowsMultipleSelection: true) { result in
+            guard case .success(let urls) = result, !urls.isEmpty else { return }
+            pendingDriverFiles = urls
+            newProfileName = ""
+        }
+        .sheet(isPresented: Binding(get: { !pendingDriverFiles.isEmpty },
+                                    set: { if !$0 { pendingDriverFiles = [] } })) {
+            driverNamingSheet
+        }
         .alert("Erase \(diskVM.selected?.model ?? "")?", isPresented: $showConfirm) {
             Button("Cancel", role: .cancel) {}
             Button(formatMode ? "Erase and Format" : "Erase and Write", role: .destructive) { startWrite() }
@@ -206,6 +273,43 @@ struct ContentView: View {
             } else {
                 Text("All data on /dev/\(diskVM.selected?.bsdName ?? "") (\(diskVM.selected?.displaySize ?? "")) will be permanently destroyed.")
             }
+        }
+    }
+
+    /// Names the model the picked files belong to, so the library reads as a list of machines
+    /// rather than a pile of installers.
+    private var driverNamingSheet: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Add drivers").font(.headline)
+            Text(pendingDriverFiles.map(\.lastPathComponent).joined(separator: ", "))
+                .font(.caption).foregroundStyle(.secondary).lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+            TextField("Model, e.g. NT950XEV", text: $newProfileName)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit(commitDriverFiles)
+            if let e = driverError {
+                Text(e).font(.caption).foregroundStyle(.red)
+            }
+            HStack {
+                Spacer()
+                Button("Cancel") { pendingDriverFiles = []; driverError = nil }
+                Button("Add", action: commitDriverFiles)
+                    .buttonStyle(.borderedProminent).tint(accent)
+                    .disabled(DriverLibrary.sanitize(newProfileName).isEmpty)
+            }
+        }
+        .padding(20).frame(width: 380)
+    }
+
+    private func commitDriverFiles() {
+        let name = DriverLibrary.sanitize(newProfileName)
+        guard !name.isEmpty else { return }
+        do {
+            try drivers.add(files: pendingDriverFiles, toProfileNamed: name)
+            pendingDriverFiles = []
+            driverError = nil
+        } catch {
+            driverError = error.localizedDescription
         }
     }
 
@@ -326,7 +430,9 @@ struct ContentView: View {
         if image.isWindows {
             winWriter.start(isoPath: url.path, bsdName: disk.bsdName,
                             customization: windowsCustomization(),
-                            useNativeSplitter: useNativeWimSplit)
+                            useNativeSplitter: useNativeWimSplit,
+                            driverRoot: DriverLibrary.rootURL.path,
+                            driverProfiles: Array(drivers.selected).sorted())
         } else if let hash = image.sha256Base64 {
             writer.startWrite(imagePath: url.path, bsdName: disk.bsdName, sha256Base64: hash, verify: verifyAfterWrite)
         }

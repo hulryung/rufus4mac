@@ -31,6 +31,11 @@ For Windows ISOs you can preset **Windows User Experience** options, applied via
 `autounattend.xml`: bypass Windows 11 checks (TPM/Secure Boot/RAM/CPU), create a local account,
 skip privacy questions, match this Mac's region & language, and disable BitLocker auto-encryption.
 
+**Drivers:** a fresh Windows install with no Wi-Fi driver cannot download one. Add the installer you
+grabbed on another machine under **Drivers to carry**, name it after the model (`NT950XEV`), and tick
+it — rufus4mac copies it to `Drivers/<model>/` on the same stick. Windows Setup does not touch these;
+run them once Windows is up.
+
 **Format mode:** select no image and the button becomes **Format** — erase a USB as **exFAT** or
 **FAT32** with **MBR/GPT** and a volume label.
 

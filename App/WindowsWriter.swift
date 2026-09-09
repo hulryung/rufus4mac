@@ -12,11 +12,13 @@ final class WindowsWriter: NSObject, ObservableObject {
     @Published var errorText: String?
 
     func start(isoPath: String, bsdName: String, customization: WindowsCustomization,
-               useNativeSplitter: Bool = false) {
+               useNativeSplitter: Bool = false,
+               driverRoot: String? = nil, driverProfiles: [String] = []) {
         phase = "preparing"; fraction = 0; finished = false; isRunning = true; errorText = nil
         Task.detached { [weak self] in
             await self?.run(isoPath: isoPath, bsdName: bsdName, customization: customization,
-                            useNativeSplitter: useNativeSplitter)
+                            useNativeSplitter: useNativeSplitter,
+                            driverRoot: driverRoot, driverProfiles: driverProfiles)
         }
     }
 
@@ -47,7 +49,8 @@ final class WindowsWriter: NSObject, ObservableObject {
     }
 
     private nonisolated func run(isoPath: String, bsdName: String, customization: WindowsCustomization,
-                                 useNativeSplitter: Bool) async {
+                                 useNativeSplitter: Bool,
+                                 driverRoot: String?, driverProfiles: [String]) async {
         let runner = SystemProcessRunner()
         let inspector = ISOInspector(runner: runner)
         // The MIT-licensed splitter needs no external binary; wimlib is only located when it is the
@@ -81,6 +84,15 @@ final class WindowsWriter: NSObject, ObservableObject {
             if !customization.isEmpty {
                 await set("customizing", 1)
                 try WindowsCustomizer.apply(usbRoot: mp, options: customization)
+            }
+            // Driver installers ride along in a plain Drivers/ folder for the user to run once
+            // Windows is up — the machine that needs a Wi-Fi driver cannot download one.
+            if let driverRoot, !driverProfiles.isEmpty {
+                await set("drivers", 0)
+                let copied = try DriverStore.copy(profileNames: driverProfiles, from: driverRoot,
+                                                  to: mp,
+                                                  progress: { f in Task { await self.set("drivers", f) } })
+                try DriverStore.verify(profiles: copied, root: driverRoot, usbRoot: mp)
             }
             // Eject flushes; if it fails the USB still holds unwritten data, so say so rather
             // than reporting a clean finish the user would act on by pulling the stick.

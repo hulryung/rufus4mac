@@ -126,6 +126,22 @@ changes: the Windows path runs "copying" 0…1 and then "splitting" 0…1 again,
 speeds, so one rate carried across them would be wrong rather than merely coarse. It stays hidden
 until the phase has run three seconds and moved one percent, since anything sooner is noise.
 
+### Carrying driver installers
+
+A machine whose Wi-Fi driver is missing cannot download one — Samsung's own support pages tell you
+to fetch the driver on another PC and bring it over on a USB stick. rufus4mac can put it on the same
+stick as the installer.
+
+`DriverStore` copies selected profiles to `Drivers/<model>/` at the USB root and size-checks what
+landed, like the image copy. The folder is deliberately **not** `$WinPEDriver$`: Windows Setup loads
+drivers from that name during installation, and these are meant to be run by hand afterwards.
+
+A profile is just a directory under `~/Library/Application Support/rufus4mac/Drivers`, so the
+library is inspectable and editable in Finder — drop an installer into a folder and it belongs to
+that model. Nothing parses the files. The app deliberately ships no catalogue of per-model download
+URLs: Samsung distributes drivers through its own updater rather than stable links, so a built-in
+catalogue would be guesswork that rots.
+
 ### Why the Windows path verifies itself
 
 Neither `copyItem` nor `wimlib-imagex split` reliably reports failure when a USB stops accepting
