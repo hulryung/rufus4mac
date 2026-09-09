@@ -36,14 +36,81 @@ public struct CatalogModel: Codable, Sendable, Hashable, Identifiable {
 ///
 /// Galaxy Book Go and other Snapdragon models are **not** covered: their Wi-Fi is Qualcomm.
 public struct DriverCatalog: Codable, Sendable {
+    /// Bumped when the file format changes incompatibly. A catalogue from the future is refused
+    /// rather than half-read.
+    public static let currentFormatVersion = 1
+
+    public var formatVersion: Int?
+    /// What this catalogue is, shown so a user can tell one source from another.
+    public var name: String?
+    public var maintainer: String?
+    public var updatedAt: String?
+    /// Where to re-fetch this catalogue from. Present only in catalogues meant to be kept current.
+    public var updateURL: URL?
     public let models: [CatalogModel]
     public let packages: [DriverPackage]
+
+    public var displayName: String { name ?? "Untitled catalog" }
 
     public static func bundled() throws -> DriverCatalog {
         guard let url = Bundle.module.url(forResource: "driver-catalog", withExtension: "json") else {
             throw WimToolError(message: "driver catalogue is missing from the app bundle")
         }
-        return try JSONDecoder().decode(DriverCatalog.self, from: Data(contentsOf: url))
+        return try decode(Data(contentsOf: url), source: "bundled catalog")
+    }
+
+    /// Decode *and* validate. Everything that reaches the app goes through here, including
+    /// catalogues written by other people, so validation is not optional.
+    public static func decode(_ data: Data, source: String) throws -> DriverCatalog {
+        let catalog: DriverCatalog
+        do {
+            catalog = try JSONDecoder().decode(DriverCatalog.self, from: data)
+        } catch {
+            throw WimToolError(message: "\(source) is not a valid driver catalog: \(error.localizedDescription)")
+        }
+        try catalog.validate(source: source)
+        return catalog
+    }
+
+    /// Refuse anything that could not be checked before it is run.
+    ///
+    /// A catalogue entry points at an executable that will be run on a freshly installed machine.
+    /// Shared catalogues make that someone else's file, so every entry must carry what makes it
+    /// verifiable — an https URL and the publisher's SHA-256 — or it does not load at all. A
+    /// catalogue that cannot be checked is worse than no catalogue.
+    public func validate(source: String) throws {
+        func fail(_ why: String) throws -> Never {
+            throw WimToolError(message: "\(source): \(why)")
+        }
+        let version = formatVersion ?? 1
+        guard version <= Self.currentFormatVersion else {
+            try fail("needs catalog format \(version), this version of rufus4mac understands \(Self.currentFormatVersion)")
+        }
+        guard !packages.isEmpty else { try fail("contains no packages") }
+
+        var seen = Set<String>()
+        for p in packages {
+            guard !p.id.isEmpty else { try fail("a package has no id") }
+            guard seen.insert(p.id).inserted else { try fail("duplicate package id \(p.id)") }
+            guard p.url.scheme?.lowercased() == "https" else {
+                try fail("package \(p.id) must be fetched over https, not \(p.url.scheme ?? "nothing")")
+            }
+            let hash = p.sha256.lowercased()
+            guard hash.count == 64, hash.allSatisfy({ $0.isHexDigit }) else {
+                try fail("package \(p.id) has no usable SHA-256 — it could not be verified before being run")
+            }
+            guard p.sizeBytes > 0 else { try fail("package \(p.id) has no size") }
+            guard !p.name.isEmpty, !p.version.isEmpty else { try fail("package \(p.id) is unnamed") }
+        }
+
+        guard !models.isEmpty else { try fail("lists no devices") }
+        for m in models {
+            guard !m.name.isEmpty else { try fail("a device has no name") }
+            guard !m.packageIDs.isEmpty else { try fail("device \(m.name) lists no packages") }
+            for id in m.packageIDs where !seen.contains(id) {
+                try fail("device \(m.name) refers to unknown package \(id)")
+            }
+        }
     }
 
     public func packages(for model: CatalogModel) -> [DriverPackage] {

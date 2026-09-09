@@ -34,8 +34,12 @@ struct ContentView: View {
     @State private var driverURLText = ""
     @State private var driverURLModel = ""
     @State private var driverDownloading = false
+    @StateObject private var catalogs = CatalogLibrary()
     @State private var pickingModel = false
-    @State private var catalogModel: CatalogModel?
+    @State private var catalogEntry: CatalogEntry?
+    @State private var managingCatalogs = false
+    @State private var catalogURLText = ""
+    @State private var catalogBusy = false
     @State private var clock = ProgressClock()
     /// Ticks once a second so elapsed time keeps moving between progress callbacks.
     @State private var now = Date()
@@ -197,10 +201,11 @@ struct ContentView: View {
                             Menu("Add") {
                                 Button("From catalog…") {
                                     driverError = nil
-                                    catalogModel = catalog?.models.first
+                                    catalogs.refresh()
+                                    catalogEntry = catalogs.entries.first
                                     pickingModel = true
                                 }
-                                .disabled(catalog == nil)
+                                .disabled(catalogs.entries.isEmpty)
                                 Button("From files…", action: pickDriverFiles)
                                 Button("From link…") {
                                     driverURLText = ""; driverURLModel = ""
@@ -280,6 +285,7 @@ struct ContentView: View {
         }
         .sheet(isPresented: $downloadingDrivers) { driverDownloadSheet }
         .sheet(isPresented: $pickingModel) { catalogSheet }
+        .sheet(isPresented: $managingCatalogs) { catalogManagerSheet }
         .alert("Erase \(diskVM.selected?.model ?? "")?", isPresented: $showConfirm) {
             Button("Cancel", role: .cancel) {}
             Button(formatMode ? "Erase and Format" : "Erase and Write", role: .destructive) { startWrite() }
@@ -333,39 +339,45 @@ struct ContentView: View {
         pendingDriverFiles = panel.urls
     }
 
-    /// Loaded once; a missing or malformed catalogue simply hides the button rather than failing.
-    private var catalog: DriverCatalog? { try? DriverCatalog.bundled() }
-
-    /// Pick the machine, get the driver. The model does not decide the file — every Intel Galaxy
-    /// Book takes the same package — so the list is a way to find yourself, not a mapping to get
-    /// wrong.
+    /// Pick the machine, get the driver. The device list spans every installed catalog, so entries
+    /// carry the catalog they came from — two publishers can name a device the same thing.
     private var catalogSheet: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Add from catalog").font(.headline)
-            if let catalog {
-                Picker("Model", selection: $catalogModel) {
-                    ForEach(catalog.models) { m in
-                        Text(m.name).tag(Optional(m))
-                    }
-                }
-                .labelsHidden()
-
-                if let m = catalogModel {
-                    Text(m.modelNumbers).font(.caption).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    ForEach(catalog.packages(for: m)) { p in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(p.displayName).font(.callout).fontWeight(.medium)
-                            Text(p.covers).font(.caption).foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Text(DriverLibrary.sizeLabel(p.sizeBytes)
-                                 + " · verified against the vendor's SHA-256")
-                                .font(.caption2).foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 2)
-                    }
+            Picker("Device", selection: $catalogEntry) {
+                ForEach(catalogs.entries) { e in
+                    Text(e.name).tag(Optional(e))
                 }
             }
+            .labelsHidden()
+
+            if let e = catalogEntry {
+                Text(e.model.modelNumbers).font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                ForEach(catalogs.catalog(for: e).map { $0.packages(for: e.model) } ?? []) { p in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(p.displayName).font(.callout).fontWeight(.medium)
+                        Text(p.covers).font(.caption).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(DriverLibrary.sizeLabel(p.sizeBytes)
+                             + " · verified against the publisher's SHA-256")
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 2)
+                }
+                Text("from \(e.catalogName)").font(.caption2).foregroundStyle(.secondary)
+            }
+
+            Divider()
+            HStack {
+                Text("\(catalogs.catalogs.count) catalog\(catalogs.catalogs.count == 1 ? "" : "s") · "
+                     + "\(catalogs.entries.count) devices")
+                    .font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Button("Manage…") { catalogURLText = ""; driverError = nil; managingCatalogs = true }
+                    .controlSize(.small)
+            }
+
             if let e = driverError {
                 Text(e).font(.caption).foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
@@ -380,22 +392,142 @@ struct ContentView: View {
                     .disabled(driverDownloading)
                 Button("Download", action: installFromCatalog)
                     .buttonStyle(.borderedProminent).tint(accent)
-                    .disabled(driverDownloading || catalogModel == nil)
+                    .disabled(driverDownloading || catalogEntry == nil)
             }
         }
         .padding(20).frame(width: 440)
     }
 
+    /// Catalogs are files, so managing them is add, update and remove.
+    private var catalogManagerSheet: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Driver catalogs").font(.headline)
+            Text("A catalog is a JSON file listing devices and the driver packages they need. "
+                 + "Share one by sending the file or hosting it at a link.")
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(catalogs.catalogs) { c in
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(c.name).fontWeight(.medium)
+                                Text("\(c.catalog.models.count) devices"
+                                     + (c.origin.isRemovable ? "" : " · built in")
+                                     + (c.catalog.updatedAt.map { " · \($0)" } ?? ""))
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: 0)
+                            if c.canUpdate {
+                                Button("Update") { updateCatalog(c) }
+                                    .controlSize(.small).disabled(catalogBusy)
+                            }
+                            if c.origin.isRemovable {
+                                Button { catalogs.remove(c) } label: { Image(systemName: "trash") }
+                                    .buttonStyle(.borderless).controlSize(.small).disabled(catalogBusy)
+                            }
+                        }
+                        .padding(.vertical, 5)
+                        if c.id != catalogs.catalogs.last?.id { Divider() }
+                    }
+                }
+                .padding(.horizontal, 8)
+            }
+            .frame(maxHeight: 170)
+            .background(Color(nsColor: .controlBackgroundColor),
+                        in: RoundedRectangle(cornerRadius: 8))
+
+            if !catalogs.problems.isEmpty {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(catalogs.problems, id: \.self) { p in
+                        Text(p).font(.caption2).foregroundStyle(.orange)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+
+            HStack(spacing: 8) {
+                Button("Add file…", action: importCatalogFile).disabled(catalogBusy)
+                TextField("https://…/catalog.json", text: $catalogURLText)
+                    .textFieldStyle(.roundedBorder).disabled(catalogBusy)
+                Button("Fetch", action: fetchCatalog)
+                    .disabled(catalogBusy || catalogURLText.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .controlSize(.small)
+
+            if let e = driverError {
+                Text(e).font(.caption).foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            HStack {
+                if catalogBusy { ProgressView().controlSize(.small) }
+                Button("Show in Finder") {
+                    NSWorkspace.shared.activateFileViewerSelecting([CatalogLibrary.rootURL])
+                }
+                .controlSize(.small)
+                Spacer()
+                Button("Done") {
+                    managingCatalogs = false
+                    driverError = nil
+                    catalogEntry = catalogs.entries.first
+                }
+                .buttonStyle(.borderedProminent).tint(accent).disabled(catalogBusy)
+            }
+        }
+        .padding(20).frame(width: 480)
+    }
+
+    private func importCatalogFile() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.allowsMultipleSelection = true
+        panel.allowedContentTypes = [.json]
+        panel.message = "Choose one or more driver catalog files"
+        guard panel.runModal() == .OK else { return }
+        driverError = nil
+        for url in panel.urls {
+            do { try catalogs.addFromFile(url) }
+            catch { driverError = error.localizedDescription }
+        }
+    }
+
+    private func fetchCatalog() {
+        guard let url = URL(string: catalogURLText.trimmingCharacters(in: .whitespaces)) else {
+            driverError = CatalogLibraryError.notACatalog.localizedDescription
+            return
+        }
+        catalogBusy = true
+        driverError = nil
+        Task {
+            do {
+                try await catalogs.addFromURL(url)
+                catalogURLText = ""
+            } catch { driverError = error.localizedDescription }
+            catalogBusy = false
+        }
+    }
+
+    private func updateCatalog(_ c: LoadedCatalog) {
+        catalogBusy = true
+        driverError = nil
+        Task {
+            do { try await catalogs.update(c) }
+            catch { driverError = error.localizedDescription }
+            catalogBusy = false
+        }
+    }
+
     private func installFromCatalog() {
-        guard let catalog, let model = catalogModel else { return }
-        let packages = catalog.packages(for: model)
+        guard let entry = catalogEntry, let catalog = catalogs.catalog(for: entry) else { return }
+        let packages = catalog.packages(for: entry.model)
         guard !packages.isEmpty else { return }
         driverDownloading = true
         driverError = nil
         Task {
             do {
                 for p in packages {
-                    try await drivers.install(package: p, forModel: model.name, progress: { _ in })
+                    try await drivers.install(package: p, forModel: entry.model.name, progress: { _ in })
                 }
                 driverDownloading = false
                 pickingModel = false

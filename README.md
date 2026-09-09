@@ -75,6 +75,18 @@ it does not decide the file, and an entry that is missing cannot give you the wr
 > Snapdragon models (**Galaxy Book Go**, **Galaxy Book4 Edge**) are deliberately absent. Their Wi-Fi
 > is Qualcomm, and the Intel package cannot drive it.
 
+#### Other machines, other catalogs
+
+The bundled list is one file. **Add from catalog… → Manage…** installs more from a file or an https
+link, and updates them in place — so a catalog for your own fleet can be written once, hosted
+anywhere, and kept current by everyone using it.
+
+Because a catalog names executables that will be run on a fresh Windows install, every package must
+carry an https URL and the publisher's SHA-256; downloads are checked against it and discarded on
+mismatch. A catalog missing that does not load. See
+[**docs/driver-catalogs.md**](docs/driver-catalogs.md) for the format and for how to pick packages
+that stay correct.
+
 **Format mode:** select no image and the button becomes **Format** — erase a USB as **exFAT** or
 **FAT32** with **MBR/GPT** and a volume label.
 

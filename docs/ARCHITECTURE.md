@@ -141,8 +141,17 @@ library is inspectable and editable in Finder — drop an installer into a folde
 that model. Profiles are enumerated recursively, so a whole extracted driver set (INF/SYS/CAT in a
 directory) keeps its shape on the USB. Nothing parses the files.
 
-Files are added from disk, fetched from a link, or picked from a small **catalogue** shipped with
-the app. The catalogue is chipset-shaped rather than model-shaped, which is what makes it
+Files are added from disk, fetched from a link, or picked from a **catalogue** — the one shipped with
+the app, plus any the user installs from a file or an https link into
+`~/Library/Application Support/rufus4mac/Catalogs`. `CatalogStore` loads them all and tags each
+device with the catalogue it came from, since two publishers may name a device the same thing; a file
+that fails validation is reported and skipped rather than taking the rest down with it.
+
+Validation is not a nicety here. A catalogue names executables that will be run on a freshly
+installed machine, and once catalogues come from other people that is the whole of the trust story:
+every package must carry an https URL, a 64-hex SHA-256 and a size, or the catalogue does not load,
+and a download whose hash does not match is discarded rather than kept. `docs/driver-catalogs.md`
+documents the format for people writing one. The catalogue is chipset-shaped rather than model-shaped, which is what makes it
 maintainable: Samsung has no stable per-model URL, but the silicon vendors do, and one Intel package
 drives every Intel Wi-Fi adapter from Wireless-AC 9560 through Wi-Fi 7 — every Intel-based Galaxy
 Book. The model list is therefore a way to find your machine, not a mapping that decides the file,
