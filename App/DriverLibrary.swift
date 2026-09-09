@@ -1,4 +1,5 @@
 import Foundation
+import DiskDiscovery
 import WindowsMedia
 
 /// The on-disk library of driver profiles, and the selection carried into the next write.
@@ -149,13 +150,63 @@ final class DriverLibrary: ObservableObject {
 
 enum DriverLibraryError: LocalizedError {
     case emptyName
+    case volumeUnavailable
     case badURL
     case httpStatus(Int)
     var errorDescription: String? {
         switch self {
+        case .volumeUnavailable: return "The selected USB is no longer mounted or writable. Reconnect it and refresh the list."
         case .emptyName: return "Enter a name for the model."
         case .badURL: return "Enter an http or https link to the driver file."
         case .httpStatus(let code): return "The server answered \(code). Check the link."
+        }
+    }
+}
+
+/// Runs the add-only task against a mounted volume, never a whole-disk erase target.
+@MainActor
+final class DriverCopyRunner: ObservableObject {
+    @Published var volumes: [USBVolume] = []
+    @Published var selected: USBVolume?
+    @Published var isRunning = false
+    @Published var finished = false
+    @Published var fraction = 0.0
+    @Published var phase = ""
+    @Published var errorText: String?
+
+    func refresh() {
+        volumes = DiskDiscovery.writableUSBVolumes()
+        if let selected {
+            self.selected = volumes.first { $0.id == selected.id && $0.mountPath == selected.mountPath }
+        }
+    }
+
+    func start(profileNames: [String], root: String) {
+        guard !isRunning, let volume = selected else { return }
+        isRunning = true; finished = false; errorText = nil; fraction = 0; phase = "copying drivers"
+        Task {
+            do {
+                try await Task.detached {
+                    // Revalidate immediately before copying: never recreate a disappeared mount
+                    // as a folder on the Mac, or silently use a different volume at the same path.
+                    guard DiskDiscovery.writableUSBVolumes().contains(where: {
+                        $0.id == volume.id && $0.diskName == volume.diskName && $0.mountPath == volume.mountPath
+                    }) else {
+                        throw DriverLibraryError.volumeUnavailable
+                    }
+                    try DriverStore.addToExistingVolume(profileNames: profileNames, from: root,
+                                                         to: volume.mountPath,
+                                                         maximumFileSize: volume.fileSystem == "exfat" || volume.fileSystem == "apfs" || volume.fileSystem == "hfs" || volume.fileSystem == "ntfs" ? nil : 4 * 1024 * 1024 * 1024 - 1) { fraction in
+                        Task { @MainActor in
+                            if self.isRunning { self.fraction = max(self.fraction, fraction) }
+                        }
+                    }
+                }.value
+                fraction = 1
+            } catch {
+                errorText = error.localizedDescription
+            }
+            finished = true; isRunning = false
         }
     }
 }

@@ -5,7 +5,7 @@ Samsung Galaxy Books; anyone can write another for their own machines and share 
 link.
 
 Installed catalogs live in `~/Library/Application Support/rufus4mac/Catalogs/`, one file each.
-**Add from catalog… → Manage…** installs them from a file or an https link, updates them, and
+**From catalog… → Manage catalogs…** installs them from a file or an https link, updates them, and
 removes them; you can also drop files into that folder yourself.
 
 ## Why entries look the way they do
@@ -59,7 +59,7 @@ publisher's broken file does not cost you every other device.
 | `maintainer`, `updatedAt` | optional | Shown so users can tell whose list this is and how old. |
 | `updateURL` | optional | Where **Update** re-fetches from. rufus4mac fills this in for catalogs added by link. |
 | `packages[]` | required | The files. `id` must be unique within the catalog. |
-| `models[]` | required | The devices. `packageIDs` must name packages in the same file. |
+| `models[]` | required | The devices. Model `name` must be unique within the catalog; `packageIDs` must name packages in the same file. |
 | `modelNumbers` | | Free text — print what is on the sticker, so people can match their machine. |
 
 ## Getting a package right
@@ -85,6 +85,17 @@ Intel package cannot drive Qualcomm Wi-Fi, and listing them would offer a driver
 
 ## What happens on the USB
 
-Downloaded packages join the driver library as a profile named after the device. Tick it before
-writing and the files are copied to `Drivers/<device>/` on the stick. **Windows Setup does not touch
+Downloaded packages join the driver library as a profile named after the device. Select it under **Add drivers**, or enable **Include drivers on this USB** for a new Windows installer,
+and the files are copied to `Drivers/<device>/` on the stick. **Windows Setup does not touch
 them** — the folder is deliberately not `$WinPEDriver$` — so run the installer once Windows is up.
+
+
+## Adapting the UI with catalog files
+
+The catalog is the source for model names, model numbers, package lists, sizes, versions and coverage
+text. No model-specific layout is hardcoded. Search matches model name, model numbers and catalog
+name; the selected model's packages appear in a separate scroll area. Long names and descriptions
+wrap, and both model and package lists remain scrollable as the file grows. The action area remains
+visible. A search with no results disables downloading; malformed files are shown as problems while
+valid catalogs remain usable. Duplicate model names within one catalog are rejected because each
+model needs a stable selection identity; the same name across different catalogs is supported.

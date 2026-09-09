@@ -81,3 +81,37 @@ Failure paths:
 5. [ ] Selecting an image hides the Format options and restores the Write flow.
 6. [ ] A label with spaces/symbols/lowercase is normalized (uppercased, filtered, length-capped);
        an empty label becomes `RUFUS4MAC`.
+
+## UI workflow refresh
+
+- [x] Build the macOS app after the UI changes (unsigned debug build).
+- [x] Run the non-integration regression suite: 190 tests passed.
+- [x] Inspect the initial screen and switch to Format USB in the running app; no disk operation started.
+- [ ] Choose a Windows ISO and expand setup preferences, Advanced, and driver options; confirm the footer stays visible while scrolling.
+- [ ] Choose a general image, compute checksums, and copy each full hash.
+- [ ] While checking an image or writing, confirm mode, source, target, and options cannot be changed.
+- [ ] Enable a Windows local account with an empty name; confirm the action is disabled with an explanation.
+- [ ] Select an oversized or unreadable image and confirm the recovery guidance.
+- [ ] Change the format name and filesystem; confirm the normalized name matches the erase confirmation.
+- [ ] Complete each write path on a disposable USB; inspect progress, error details, and the final ejection guidance.
+
+## Driver task and catalog UI
+
+- [x] Build the app with the single-window scene; one RufusApp process and one main window after relaunch.
+- [x] Run the non-integration suite: 197 tests pass, including preservation, conflicts, symlink rejection, missing selections/destinations, and duplicate catalog model validation.
+- [x] Inspect Add drivers with the existing library and no target selected: copying is disabled.
+- [x] Open the catalog picker and search NT950: one model and its packages are shown.
+- [x] Search for a nonexistent model: empty-state guidance appears and Add to library is disabled.
+- [ ] Test a USB disconnect during copying and eject/reconnect after successful driver addition.
+- [ ] Create a disposable Windows installer with Include drivers enabled and confirm its selected model folders.
+
+## 0.4.0 release verification (2026-09-10)
+
+- [x] Full `swift test`: 211 tests passed, including synthetic-disk integration tests.
+- [x] Release build targets arm64; the bundled wimlib architecture matches.
+- [x] Developer ID signatures verified inside-out.
+- [x] Apple notarization accepted (`07d3604d-9e03-4a4c-aaf2-52a56f102d65`); DMG ticket stapled and validated.
+- [x] Gatekeeper accepts both the DMG and the installed app as Notarized Developer ID.
+- [x] The old Applications copy was replaced with 0.4.0; the installed app launches the new single-window UI.
+- [x] README screenshots captured from the signed 0.4.0 build: initial setup, add drivers, catalog, format.
+- [ ] End-to-end boot and Windows installation on a destination PC; no hardware boot claim is made for this release.

@@ -174,4 +174,65 @@ final class DriverBundlesTests: XCTestCase {
             XCTAssertTrue("\($0)".contains("missing"), "\($0)")
         }
     }
+    // MARK: - adding to existing media
+
+    func testAddDriversPreservesExistingInstallerAndOtherModels() throws {
+        try addProfile("NewModel", files: ["wifi.exe": 128])
+        let fm = FileManager.default
+        try fm.createDirectory(at: usb.appendingPathComponent("Drivers/OldModel"), withIntermediateDirectories: true)
+        let installer = Data("existing boot files".utf8)
+        try installer.write(to: usb.appendingPathComponent("setup.exe"))
+        try installer.write(to: usb.appendingPathComponent("Drivers/OldModel/lan.exe"))
+        let copied = try DriverStore.addToExistingVolume(profileNames: ["NewModel"], from: root.path, to: usb.path)
+        XCTAssertEqual(copied.map(\.name), ["NewModel"])
+        XCTAssertEqual(try Data(contentsOf: usb.appendingPathComponent("setup.exe")), installer)
+        XCTAssertEqual(try Data(contentsOf: usb.appendingPathComponent("Drivers/OldModel/lan.exe")), installer)
+        XCTAssertEqual(try Data(contentsOf: usb.appendingPathComponent("Drivers/NewModel/wifi.exe")), Data(count: 128))
+        XCTAssertFalse(try fm.contentsOfDirectory(atPath: usb.path).contains { $0.hasPrefix(".rufus-drivers-") })
+    }
+
+    func testExistingModelPreventsAnySelectedModelFromBeingCopied() throws {
+        try addProfile("A", files: ["wifi.exe": 10])
+        try addProfile("B", files: ["wifi.exe": 20])
+        let old = usb.appendingPathComponent("Drivers/B")
+        try FileManager.default.createDirectory(at: old, withIntermediateDirectories: true)
+        let payload = Data("keep this driver".utf8)
+        try payload.write(to: old.appendingPathComponent("wifi.exe"))
+        XCTAssertThrowsError(try DriverStore.addToExistingVolume(profileNames: ["A", "B"], from: root.path, to: usb.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: usb.appendingPathComponent("Drivers/A").path))
+        XCTAssertEqual(try Data(contentsOf: old.appendingPathComponent("wifi.exe")), payload)
+    }
+
+    func testExistingDriversSymlinkCannotRedirectTheCopy() throws {
+        try addProfile("Model", files: ["wifi.exe": 10])
+        let outside = root.appendingPathComponent("outside")
+        try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: usb.appendingPathComponent("Drivers"), withDestinationURL: outside)
+        XCTAssertThrowsError(try DriverStore.addToExistingVolume(profileNames: ["Model"], from: root.path, to: usb.path))
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: outside.path), [])
+    }
+
+    func testDriversFileConflictIsPreserved() throws {
+        try addProfile("Model", files: ["wifi.exe": 10])
+        let payload = Data("existing file".utf8)
+        try payload.write(to: usb.appendingPathComponent("Drivers"))
+        XCTAssertThrowsError(try DriverStore.addToExistingVolume(profileNames: ["Model"], from: root.path, to: usb.path))
+        XCTAssertEqual(try Data(contentsOf: usb.appendingPathComponent("Drivers")), payload)
+    }
+
+    func testMissingOrEmptySelectionFailsWithoutTouchingTheUSB() throws {
+        try addProfile("Model", files: ["wifi.exe": 10])
+        for names in [[], ["Missing"], ["Model", "Missing"]] as [[String]] {
+            XCTAssertThrowsError(try DriverStore.addToExistingVolume(profileNames: names, from: root.path, to: usb.path))
+        }
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: usb.path), [])
+    }
+
+    func testMissingDestinationIsNotRecreated() throws {
+        try addProfile("Model", files: ["wifi.exe": 10])
+        let missing = usb.appendingPathComponent("disconnected")
+        XCTAssertThrowsError(try DriverStore.addToExistingVolume(profileNames: ["Model"], from: root.path, to: missing.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: missing.path))
+    }
+
 }

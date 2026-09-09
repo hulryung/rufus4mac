@@ -1,110 +1,205 @@
 # rufus4mac
 
-Create bootable USB drives on macOS — a [Rufus](https://rufus.ie)-style tool for Mac.
-Write Linux/general disk images **and** Windows 10/11 install media, with progress and
-verification. Native Swift + SwiftUI; no background daemon, no Full Disk Access.
+**Create bootable USB drives, format removable media, and carry Windows drivers — from a Mac.**
+
+rufus4mac is a native SwiftUI app inspired by [Rufus](https://rufus.ie). It writes Linux and other
+raw disk images, builds Windows 10/11 installation USBs, and helps you bring driver installers to
+a PC that cannot get online yet.
 
 <p align="center">
-  <img src="docs/images/screenshot.png" alt="rufus4mac" width="560">
+  <img src="docs/images/screenshot.png" alt="rufus4mac 0.4.0: three tasks, step-by-step setup, and a fixed action area" width="600">
 </p>
+
+[Download the latest release](https://github.com/hulryung/rufus4mac/releases/latest) ·
+[Release notes](https://github.com/hulryung/rufus4mac/releases/tag/v0.4.0) ·
+[Build from source](docs/ARCHITECTURE.md#build--test)
 
 ## Install
 
-Download `rufus4mac-<version>.dmg` from the
-[**Releases**](https://github.com/hulryung/rufus4mac/releases) page, open it, and drag
-**RufusApp** to Applications. **macOS 13+** (Apple Silicon or Intel). Signed with a Developer ID
-and notarized by Apple, so it launches without Gatekeeper warnings.
+1. Download **rufus4mac-0.4.0.dmg** from [Releases](https://github.com/hulryung/rufus4mac/releases/latest).
+2. Open the DMG and drag **RufusApp** onto **Applications**.
+3. Launch RufusApp from Applications. When updating, quit the previous version before replacing it.
 
-## Usage
+The downloadable build requires **macOS 13 or later on Apple Silicon**. The app and its bundled
+wimlib are signed with a Developer ID; the DMG is notarized by Apple. No Homebrew installation,
+background daemon, or Full Disk Access grant is needed to use the release.
 
-1. **Choose…** an image (`.iso`, `.img`, `.dmg`). Windows ISOs are detected automatically.
-2. Pick the target USB under **Target disk** (internal disks are never listed).
-3. **Write** → confirm → enter your password at the one-time macOS prompt.
-4. Watch the progress to **Done**.
+Intel Macs are not supported by this prebuilt DMG. An Intel build from source needs a matching
+Intel build of wimlib. The architecture of the **Mac running the app** is separate from the PC
+that will use the USB: choose installation media and drivers appropriate for that PC.
 
-> ⚠️ Writing erases the entire target disk. Double-check the selection.
+## What's new in 0.4.0
 
-Select an image and click **Compute checksums** to see its MD5 / SHA-1 / SHA-256 (handy for verifying
-a download against a published hash).
+- **Three explicit tasks:** create bootable media, format a USB, or add drivers to an existing USB.
+- **A clearer workflow:** numbered setup cards, a fixed action/progress area, and explanations of
+  what is needed before you can start. The app uses a single main window.
+- **One shared driver library:** use it independently or enable **Include drivers on this USB**
+  when making a new Windows installer.
+- **Searchable catalogs:** find models by name, model number, or catalog; long descriptions wrap
+  and growing model/package lists scroll independently.
+- **More visible checks:** copy image hashes, preview the actual formatted drive name, and see
+  input/read errors. Setup controls are locked while checking an image or running a task.
 
-For Windows ISOs you can preset **Windows User Experience** options, applied via a generated
-`autounattend.xml`: bypass Windows 11 checks (TPM/Secure Boot/RAM/CPU), create a local account,
-skip privacy questions, match this Mac's region & language, and disable BitLocker auto-encryption.
+## Choose a task
 
-### Carrying drivers
+| Task | Use it for | Effect on existing USB data |
+|---|---|---|
+| **Create bootable USB** | Write an image or build Windows install media | Erases the entire selected disk after confirmation |
+| **Format USB** | Prepare an empty exFAT or FAT32 drive | Erases the entire selected disk after confirmation |
+| **Add drivers** | Copy driver installers onto a mounted USB | Keeps existing files; refuses conflicting model folders |
 
-A machine whose Wi-Fi driver is missing cannot download one — Samsung's own support pages tell you to
-fetch the driver on another PC and bring it over on a USB stick. rufus4mac puts it on the same stick
-as the installer. Pick a Windows ISO and the **Drivers to carry** section appears, with three ways to
-fill it:
+**Before creating or formatting a USB, back up its contents and check the device name and capacity.**
+The target lists exclude internal/system disks. You still choose the external disk yourself.
 
-| | |
-|---|---|
-| **From catalog…** | Choose your Galaxy Book from the list. rufus4mac downloads the driver and checks it against the vendor's published SHA-256. |
-| **Add files…** | Point at an installer or a whole extracted driver folder you already have. |
-| **From link…** | Paste a download link and name the model. |
+## Create a bootable USB
 
-Tick the models you want and write — they are copied to `Drivers/<model>/` on the stick, then
-size-checked like the image itself. **Windows Setup does not touch them:** the folder is deliberately
-not `$WinPEDriver$`, so nothing is installed during setup. Run the installer once Windows is up.
+1. Select **Create bootable USB** and click **Choose image…**. Supported file extensions are
+   `.iso`, `.img`, and `.dmg`. Wait for the image check to finish.
+2. Choose the target USB. Use the refresh button if you have just connected it.
+3. Review the options, then click **Create bootable USB…** and confirm the disk to erase.
+4. Follow progress in the footer. Raw image writing uses a macOS authorization prompt.
+5. Wait for **Your USB is ready** and follow the ejection guidance before unplugging.
 
-The library lives in `~/Library/Application Support/rufus4mac/Drivers`, one folder per model, so
-**Show in Finder** and drop files in if you prefer — the filesystem *is* the catalogue.
+### Windows installation media
 
-#### What the catalog covers
+Windows ISOs are detected automatically. rufus4mac creates **MBR/FAT32** install media for UEFI
+boot, copies the installation files, and splits oversized `install.wim` files into `.swm` parts.
+It checks copied file sizes and split parts before reporting success, then ejects the USB.
+
+Expand **Windows setup preferences** to configure:
+
+- Windows 11 compatibility-check bypasses.
+- Skipping privacy questions.
+- Regional settings based on this Mac; the installation language follows the ISO.
+- Disabling automatic BitLocker encryption.
+- A local administrator account. Enter a username when this option is enabled; the generated
+  account initially has a blank password, so set a password after installation.
+
+Turn on **Include drivers on this USB** to select installers from your driver library. They are
+copied to `Drivers/<model>/` alongside the Windows installation files.
+
+The bundled wimlib splitter is the default. The built-in splitter under **Advanced** remains
+experimental: it has automated compatibility checks but still needs a real Windows installation
+validation. Leave it off for the standard workflow.
+
+### Linux and other disk images
+
+Other images are written byte-for-byte. Keep **Verify after writing** enabled to read the result
+back and compare its SHA-256 with the source. Verification takes additional time.
+
+The image determines the USB's partition layout and filesystems. Selecting a supported file
+extension does not guarantee the image is bootable on your target computer. Driver files are not
+appended to raw-written images; use **Add drivers** afterwards only if the result has a writable,
+suitable volume.
+
+### Check a downloaded image
+
+Expand **Image checksums** and click **Compute checksums** to calculate MD5, SHA-1, and SHA-256.
+Each result has a copy button. Compare the full value against one published by the image provider;
+computing a hash alone does not establish that a download is authentic.
+
+Progress percentages and remaining-time estimates refer to the **current step**. Copying,
+splitting, and verification have different speeds, so the percentage can restart at a new step.
+
+## Add drivers to an existing USB
 
 <p align="center">
-  <img src="docs/images/drivers-catalog.png" alt="Add from catalog — the Galaxy Book model list" width="520">
+  <img src="docs/images/add-drivers.png" alt="Add drivers task with a shared model library and a non-destructive USB volume selector" width="600">
 </p>
 
-| Model | Model numbers |
+1. Select **Add drivers** and choose a mounted, writable external volume.
+2. Add driver files to the library using one of the methods below, then select the models to carry.
+3. Click **Add drivers to USB…** and confirm. The app stages the files and checks their sizes
+   before placing them in `Drivers/<model>/`.
+4. Eject the USB in Finder. On the Windows PC, open the relevant model folder and run its installer.
+
+| Library action | What it does |
 |---|---|
-| Galaxy Book5 Pro | `NT960XHA`, `NT940XHA` |
-| Galaxy Book4 Pro | `NT960XGK`, `NT940XGK` |
-| Galaxy Book3 Pro | `NT960XFG`, `NT940XFG` |
-| Galaxy Book2 Pro | `NT950XED`, `NT950XEV`, `NT930XED` |
-| Galaxy Book2 | `NT750XED`, `NT550XED` |
-| Other Intel Galaxy Book | any Intel model |
+| **From catalog…** | Downloads the selected model's packages and checks the publisher-provided SHA-256 |
+| **More → From files…** | Imports local installers or whole extracted driver folders |
+| **More → From link…** | Downloads a file from a supplied link into a named model folder |
+| **Show in Finder** | Opens the library so you can inspect its files |
 
-The catalog is keyed on the **chipset**, not the model. Samsung has no stable per-model download URL,
-but Intel does, and one Intel package drives every Intel Wi-Fi adapter from Wireless-AC 9560 through
-Wi-Fi 7 — which is every Intel-based Galaxy Book. So the model list only helps you find your machine;
-it does not decide the file, and an entry that is missing cannot give you the wrong driver. Pick
-**Other Intel Galaxy Book** if yours is not listed.
+**These files are carried, not automatically installed.** They are not injected into Windows Setup
+or installed on your Mac. Catalog hashes are checked against the catalog's declared values; only
+import catalogs and links from sources you trust. Direct-link imports do not have a catalog hash
+to compare against.
 
-> Snapdragon models (**Galaxy Book Go**, **Galaxy Book4 Edge**) are deliberately absent. Their Wi-Fi
-> is Qualcomm, and the Intel package cannot drive it.
+This task does **not** format the USB. If `Drivers/<model>/` already exists, the app stops rather
+than replacing it; rename or move that folder in Finder before adding the model again. If a copy
+is interrupted, some new model folders may already be present. Existing files remain untouched.
+Use a Windows-readable volume such as **FAT32 or exFAT** when taking installers to a PC.
 
-#### Other machines, other catalogs
+The library is shared between this task and Windows USB creation. It lives at
+`~/Library/Application Support/rufus4mac/Drivers`, with one folder per model. Selecting models in
+the library does not include them in a new installer unless **Include drivers on this USB** is on.
 
-The bundled list is one file. **Add from catalog… → Manage…** installs more from a file or an https
-link, and updates them in place — so a catalog for your own fleet can be written once, hosted
-anywhere, and kept current by everyone using it.
+## Driver catalogs that grow with your devices
 
-Because a catalog names executables that will be run on a fresh Windows install, every package must
-carry an https URL and the publisher's SHA-256; downloads are checked against it and discarded on
-mismatch. A catalog missing that does not load. See
-[**docs/driver-catalogs.md**](docs/driver-catalogs.md) for the format and for how to pick packages
-that stay correct.
+<p align="center">
+  <img src="docs/images/drivers-catalog.png" alt="Searchable catalog with model numbers, catalog sources, package details, and download verification information" width="600">
+</p>
 
-**Format mode:** select no image and the button becomes **Format** — erase a USB as **exFAT** or
-**FAT32** with **MBR/GPT** and a volume label.
+The bundled catalog lists Intel-based Galaxy Book 2 through 5 models plus a general Intel Galaxy
+Book entry. It carries an Intel Wi-Fi package; it is **not a complete Samsung driver suite**.
+Snapdragon/Qualcomm models such as Galaxy Book Go and Galaxy Book4 Edge are not covered by that package.
 
-## Roadmap
+Use **From catalog… → Manage catalogs…** to add JSON catalogs from a file or HTTPS URL, update them,
+or remove user-added catalogs. Search matches model names, model numbers, and catalog names. Model
+lists and package details adapt to the file's contents; no model-specific UI changes are required.
+Invalid catalogs are reported while valid ones remain available.
 
-| Phase | Scope | Status |
-|-------|-------|--------|
-| **1 — MVP** | Device + image selection, raw/DD write to USB, verify | ✅ done |
-| **2 — Windows media** | UEFI Windows 10/11 install USB (FAT32 + `install.wim` split, Win11 bypass) | ✅ done |
-| **3 — Format options** | Format-only mode: MBR/GPT + exFAT/FAT32 + volume label (NTFS/cluster/bad-block deferred) | ✅ done |
-| **4 — Extras** | ISO downloader, Linux persistence, checksums, localization | planned |
+Catalogs declare package URLs, versions, sizes, coverage descriptions, and SHA-256 hashes.
+See [Writing and sharing driver catalogs](docs/driver-catalogs.md) for the format and an example.
+Installed catalogs live in `~/Library/Application Support/rufus4mac/Catalogs`.
 
-## Docs
+## Format a USB
 
-- [Architecture & internals](docs/ARCHITECTURE.md) — how it works, build & test, packaging
-- [Manual test checklist](docs/manual-test-checklist.md)
-- Design specs & implementation plans: [`docs/superpowers/`](docs/superpowers/)
+<p align="center">
+  <img src="docs/images/format-usb.png" alt="Format task with partition scheme, filesystem, drive name preview, and erase confirmation action" width="600">
+</p>
 
-## License
+Select **Format USB**, choose a target, and set its partition scheme, filesystem, and drive name.
+The app previews the normalized name that will actually be written. Click **Erase & format USB…**
+to review and confirm the operation. Eject the drive in Finder afterwards.
 
-TBD
+- **exFAT:** supports large files and works with macOS and Windows.
+- **FAT32:** useful for older devices; individual files must be smaller than 4 GiB.
+- **GPT / MBR:** choose the partition scheme appropriate for the devices that will use the drive.
+
+This is a quick format. NTFS formatting, secure erasure, bad-block scans, and custom cluster sizes
+are not implemented. Switching tasks preserves the selected image; an empty image selection never
+silently switches the app into format mode.
+
+## Troubleshooting and limits
+
+- **USB missing:** reconnect it and refresh. Add drivers requires an already-mounted, writable
+  volume; a read-only filesystem will not appear in that list.
+- **Start button disabled:** read the footer for the missing selection, pending image check,
+  insufficient space, or required input.
+- **A copy or verification fails:** keep the error details, check the connection and free space,
+  and try again with a reliable port or drive. Do not treat a failed write as bootable media.
+- **Driver folder conflict:** move or rename the existing model folder in Finder, then retry.
+- **Boot compatibility:** Windows media targets UEFI. Legacy BIOS Windows media, automatic driver
+  injection, ISO downloading, and Linux persistence are not implemented.
+
+Automated tests exercise core behavior and synthetic disk images. They do not replace an end-to-end
+boot and installation test on the destination PC. See the [manual checklist](docs/manual-test-checklist.md)
+for hardware validation that remains outstanding.
+
+## Development and documentation
+
+```sh
+swift test
+xcodegen generate
+xcodebuild -project rufus4mac.xcodeproj -scheme RufusApp \
+  -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO build
+```
+
+- [Architecture, build instructions, and release packaging](docs/ARCHITECTURE.md)
+- [Driver catalog format](docs/driver-catalogs.md)
+- [Manual verification checklist](docs/manual-test-checklist.md)
+
+The source tree does not yet declare a project-wide license. The built-in WimSplit module has its
+own [MIT license](Sources/WimSplit/LICENSE). Releases bundle [wimlib](https://wimlib.net/); its upstream
+license notices are included in the app's `Contents/Resources/wimlib` directory.

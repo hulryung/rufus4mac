@@ -10,12 +10,14 @@ final class ImageSelection: ObservableObject {
     @Published var imageURL: URL?
     @Published var imageSize: UInt64 = 0
     @Published var sha256Base64: String?
+    @Published var errorText: String?
     @Published var hashing = false
     @Published var isWindows = false
 
     func fits(disk: DiskInfo) -> Bool { imageSize > 0 && imageSize <= disk.sizeBytes }
 
     func select(url: URL) {
+        errorText = nil
         imageURL = url
         sha256Base64 = nil
         isWindows = false
@@ -46,5 +48,8 @@ final class ImageSelection: ObservableObject {
             return (try? WriteEngine.sha256(of: src))?.base64EncodedString()
         }.value
         sha256Base64 = base64
+        if base64 == nil {
+            errorText = "Could not read this image. Choose an accessible image file and try again."
+        }
     }
 }

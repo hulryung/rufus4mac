@@ -115,3 +115,40 @@ private final class UnmountBox {
     let sema = DispatchSemaphore(value: 0)
     var failureMessage: String?
 }
+
+/// A mounted, writable volume on an eligible external disk. Unlike a whole-disk write target,
+/// this identifies the exact filesystem that receives additional files without formatting.
+public struct USBVolume: Identifiable, Hashable, Sendable {
+    public let mountPath: String
+    public let name: String
+    public let bsdName: String
+    public let diskName: String
+    public let availableBytes: UInt64
+    public let fileSystem: String
+    public var id: String { bsdName }
+}
+
+extension DiskDiscovery {
+    public static func writableUSBVolumes() -> [USBVolume] {
+        guard let session = DASessionCreate(kCFAllocatorDefault) else { return [] }
+        let eligible = Set(removableDisks().map(\.bsdName))
+        let keys: Set<URLResourceKey> = [.volumeNameKey, .volumeIsReadOnlyKey, .volumeAvailableCapacityKey]
+        let urls = FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: Array(keys),
+                                                         options: [.skipHiddenVolumes]) ?? []
+        return urls.compactMap { url -> USBVolume? in
+            guard let disk = DADiskCreateFromVolumePath(kCFAllocatorDefault, session, url as CFURL),
+                  let whole = DADiskCopyWholeDisk(disk),
+                  let wholeName = DADiskGetBSDName(whole),
+                  eligible.contains(String(cString: wholeName)),
+                  let name = DADiskGetBSDName(disk),
+                  let description = DADiskCopyDescription(disk) as? [String: Any],
+                  let values = try? url.resourceValues(forKeys: keys),
+                  values.volumeIsReadOnly == false,
+                  let available = values.volumeAvailableCapacity else { return nil }
+            return USBVolume(mountPath: url.path, name: values.volumeName ?? url.lastPathComponent,
+                             bsdName: String(cString: name), diskName: String(cString: wholeName),
+                             availableBytes: UInt64(max(0, available)),
+                             fileSystem: description[kDADiskDescriptionVolumeKindKey as String] as? String ?? "unknown")
+        }.sorted { $0.mountPath.localizedStandardCompare($1.mountPath) == .orderedAscending }
+    }
+}

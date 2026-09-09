@@ -104,7 +104,9 @@ public struct DriverCatalog: Codable, Sendable {
         }
 
         guard !models.isEmpty else { try fail("lists no devices") }
+        var modelNames = Set<String>()
         for m in models {
+            guard modelNames.insert(m.name).inserted else { try fail("duplicate device name \(m.name)") }
             guard !m.name.isEmpty else { try fail("a device has no name") }
             guard !m.packageIDs.isEmpty else { try fail("device \(m.name) lists no packages") }
             for id in m.packageIDs where !seen.contains(id) {

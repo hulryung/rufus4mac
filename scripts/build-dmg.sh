@@ -2,9 +2,8 @@
 #
 # Build, Developer ID–sign, notarize, and staple a distributable rufus4mac DMG.
 #
-# This script is a STARTING POINT and has NOT been run end-to-end yet (signing +
-# notarization require interactive/credential setup). Read the prerequisites and
-# adjust as needed.
+# Release build for Apple Silicon. The bundled Homebrew wimlib must match arm64.
+# Signing and notarization require the keychain credentials listed below.
 #
 # Prerequisites
 #   1. Developer ID Application cert in the keychain:
@@ -36,6 +35,7 @@ rm -rf "$BUILD_DIR/Release"
 mkdir -p "$BUILD_DIR/Release"
 xcodebuild -project rufus4mac.xcodeproj -scheme RufusApp -configuration Release \
     -derivedDataPath "$DERIVED" -destination 'platform=macOS' \
+    ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
     DEVELOPMENT_TEAM=XGJ87M8ZZR \
     CODE_SIGN_IDENTITY="$IDENTITY" CODE_SIGN_STYLE=Manual \
     OTHER_CODE_SIGN_FLAGS="--timestamp" \
@@ -65,7 +65,11 @@ codesign --verify --deep --strict --verbose=2 "$APP"
 
 echo "==> Creating DMG"
 rm -f "$DMG"
-hdiutil create -volname "rufus4mac $VERSION" -srcfolder "$APP" -ov -format UDZO "$DMG"
+STAGING="$(mktemp -d "$BUILD_DIR/dmg-staging.XXXXXX")"
+trap 'rm -rf "$STAGING"' EXIT
+ditto "$APP" "$STAGING/RufusApp.app"
+ln -s /Applications "$STAGING/Applications"
+hdiutil create -volname "rufus4mac $VERSION" -srcfolder "$STAGING" -ov -format UDZO "$DMG"
 codesign --force --timestamp --sign "$IDENTITY" "$DMG"
 
 echo "==> Notarizing (this can take a few minutes)"
@@ -75,6 +79,7 @@ echo "==> Stapling"
 xcrun stapler staple "$DMG"
 
 echo "==> Gatekeeper assessment"
-spctl -a -vvv -t install "$APP" || true
+xcrun stapler validate "$DMG"
+spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG"
 
 echo "Done. Notarized DMG: $DMG"

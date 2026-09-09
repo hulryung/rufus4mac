@@ -19,6 +19,16 @@ final class DriverCatalogTests: XCTestCase {
         }
     }
 
+    func testDuplicateModelNamesAreRejectedBeforeRendering() throws {
+        let original = try catalog()
+        var object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(original)) as! [String: Any]
+        var models = object["models"] as! [[String: Any]]
+        models.append(models[0])
+        object["models"] = models
+        let data = try JSONSerialization.data(withJSONObject: object)
+        XCTAssertThrowsError(try DriverCatalog.decode(data, source: "duplicate-models.json"))
+    }
+
     func testPackageIDsAreUnique() throws {
         let ids = try catalog().packages.map(\.id)
         XCTAssertEqual(Set(ids).count, ids.count)

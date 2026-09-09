@@ -185,13 +185,13 @@ Design: `docs/superpowers/specs/2026-06-01-rufus4mac-phase2-windows-design.md`.
 
 ### Format mode
 
-Select **no image** and the primary button becomes **Format**: the `DiskFormat` module's
+Select **Format USB** explicitly (independent of the retained image selection): the `DiskFormat` module's
 `DiskFormatter` runs `diskutil eraseDisk <personality> <label> <scheme> /dev/<bsd>` to quick-format
 the USB with the chosen options. `FormatOptions` maps the UI choices — partition scheme (MBR/GPT),
 file system (exFAT → `ExFAT`, FAT32 → `MS-DOS FAT32`), and a normalized volume label
 (uppercase/`A–Z0–9`, length-capped, default `RUFUS4MAC`). FAT32 + exFAT only (both `diskutil`-native);
 NTFS, Mac filesystems, full/zero erase, bad-block scan, and custom cluster size are deferred. No
-`sudo` — `diskutil` formats removable media as the console user. When an image *is* selected, the
+`sudo` — `diskutil` formats removable media as the console user. In **Create bootable USB** mode, the
 write path determines the on-disk format, so the format options are hidden.
 
 Design: `docs/superpowers/specs/2026-06-01-rufus4mac-phase3-format-design.md`.
@@ -260,3 +260,18 @@ xcrun notarytool store-credentials rufus4mac-notary \
 - macOS 13+. Raw disk access can't be sandboxed, so this is a notarized DMG, not a Mac App Store app.
 - The Windows-USB path's automated tests use synthetic `hdiutil` images; end-to-end boot on real
   hardware is tracked in `docs/manual-test-checklist.md`.
+
+
+### Driver-only task and shared selection
+
+The single `Window` scene hosts three explicit tasks: bootable USB, format USB and add drivers.
+The latter resolves mounted writable volumes on the removable disks exposed by `DiskDiscovery`.
+`DriverCopyRunner` revalidates the volume before copying, reports progress, and leaves ejection to
+Finder. It never calls the formatter. `DriverStore.addToExistingVolume` checks free space and model
+folder conflicts, rejects a non-directory or symlink `Drivers` destination, stages the new files on
+the target volume, verifies sizes, and publishes model folders without replacement. If publishing
+is interrupted, some new model folders may already have landed; existing files remain untouched.
+
+Windows creation offers an explicit Include drivers toggle. The same library UI and selection feed
+`WindowsWriter` only when enabled. Raw image writing does not append files because the image owns
+its filesystem layout. Catalog lists are searchable and scrollable, driven by installed JSON files.

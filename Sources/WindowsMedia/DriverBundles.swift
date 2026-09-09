@@ -73,6 +73,7 @@ public enum DriverStore {
     /// a stale selection must not cost the user a finished USB.
     @discardableResult
     public static func copy(profileNames: [String], from root: String, to usbRoot: String,
+                            maximumFileSize: UInt64? = 4 * 1024 * 1024 * 1024 - 1,
                             progress: (Double) -> Void = { _ in }) throws -> [DriverProfile] {
         let all = profiles(in: root)
         let wanted = all.filter { profileNames.contains($0.name) && !$0.files.isEmpty }
@@ -84,7 +85,7 @@ public enum DriverStore {
                     .appendingPathComponent(f)
                 let size = ((try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? NSNumber)?
                     .uint64Value ?? 0
-                if size > maxFileSize {
+                if let maximumFileSize, size > maximumFileSize {
                     throw WimToolError(message: "\(p.name)/\(f) is \(size) bytes, over FAT32's 4 GB file limit.")
                 }
             }
@@ -143,5 +144,55 @@ public enum DriverStore {
                 }
             }
         }
+    }
+}
+
+extension DriverStore {
+    /// Add drivers to an existing volume without overwriting its files. Build and verify a
+    /// staging copy on that volume first, then publish whole model folders with no replacement.
+    @discardableResult
+    public static func addToExistingVolume(profileNames: [String], from root: String, to usbRoot: String,
+                                            maximumFileSize: UInt64? = 4 * 1024 * 1024 * 1024 - 1,
+                                            progress: (Double) -> Void = { _ in }) throws -> [DriverProfile] {
+        let fm = FileManager.default
+        let wanted = profiles(in: root).filter { profileNames.contains($0.name) && !$0.files.isEmpty }
+        guard !wanted.isEmpty, Set(wanted.map(\.name)) == Set(profileNames) else {
+            throw WimToolError(message: "Some selected drivers are missing or empty. Refresh the library and select them again.")
+        }
+        let volume = URL(fileURLWithPath: usbRoot, isDirectory: true)
+        let destination = volume.appendingPathComponent(usbFolderName, isDirectory: true)
+        // An existing Drivers symlink must never redirect a USB operation elsewhere.
+        if let attrs = try? fm.attributesOfItem(atPath: destination.path),
+           attrs[.type] as? FileAttributeType != .typeDirectory {
+            throw WimToolError(message: "Drivers on the USB is not a regular folder. Rename it in Finder and try again.")
+        }
+        for profile in wanted {
+            let target = destination.appendingPathComponent(profile.name)
+            if (try? fm.attributesOfItem(atPath: target.path)) != nil {
+                throw WimToolError(message: "Drivers/\(profile.name) already exists on this USB. Rename or move that folder in Finder before adding this model again. Existing files were kept.")
+            }
+        }
+        let available = try volume.resourceValues(forKeys: [.volumeAvailableCapacityKey]).volumeAvailableCapacity
+        let required = wanted.reduce(UInt64(0)) { $0 + $1.totalSize }
+        guard let available, UInt64(max(0, available)) >= required else {
+            throw WimToolError(message: "The USB does not have enough free space for the selected drivers.")
+        }
+        let stage = volume.appendingPathComponent(".rufus-drivers-\(UUID().uuidString)", isDirectory: true)
+        try fm.createDirectory(at: stage, withIntermediateDirectories: false)
+        defer { try? fm.removeItem(at: stage) }
+        let copied = try copy(profileNames: profileNames, from: root, to: stage.path, maximumFileSize: maximumFileSize, progress: progress)
+        guard Set(copied.map(\.name)) == Set(wanted.map(\.name)) else {
+            throw WimToolError(message: "The driver library changed during copying. Refresh it and try again.")
+        }
+        try verify(profiles: copied, root: root, usbRoot: stage.path)
+        try fm.createDirectory(at: destination, withIntermediateDirectories: true)
+        for profile in copied {
+            let staged = stage.appendingPathComponent(usbFolderName).appendingPathComponent(profile.name)
+            let target = destination.appendingPathComponent(profile.name)
+            // moveItem fails if a destination appeared since preflight; it never replaces it.
+            try fm.moveItem(at: staged, to: target)
+        }
+        try verify(profiles: copied, root: root, usbRoot: usbRoot)
+        return copied
     }
 }
