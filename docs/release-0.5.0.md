@@ -17,4 +17,5 @@ paths from diagnostic output. Review a report before sharing it.
 
 Validation: 221 automated tests passed; macOS debug and release builds passed. Signed/notarized installation, live format review, successful formatting, stale-device rejection,
 read-only failure handling and report export were verified using an owned temporary disk image.
-Remaining preflight variants and publication are tracked in the manual checklist.
+Windows, raw-image and standalone-driver preflight variants were also inspected without starting writes.
+Hardware boot was reported by the user; a complete Windows installation remains a separate hardware check.

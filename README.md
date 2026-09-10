@@ -7,16 +7,16 @@ raw disk images, builds Windows 10/11 installation USBs, and helps you bring dri
 a PC that cannot get online yet.
 
 <p align="center">
-  <img src="docs/images/screenshot.png" alt="rufus4mac 0.4.0: three tasks, step-by-step setup, and a fixed action area" width="600">
+  <img src="docs/screenshots/korean-0.5.0.png" alt="rufus4mac 0.5.0: Korean interface with three guided USB tasks" width="600">
 </p>
 
 [Download the latest release](https://github.com/hulryung/rufus4mac/releases/latest) ·
-[Release notes](https://github.com/hulryung/rufus4mac/releases/tag/v0.4.0) ·
+[Release notes](https://github.com/hulryung/rufus4mac/releases/tag/v0.5.0) ·
 [Build from source](docs/ARCHITECTURE.md#build--test)
 
 ## Install
 
-1. Download **rufus4mac-0.4.0.dmg** from [Releases](https://github.com/hulryung/rufus4mac/releases/latest).
+1. Download **rufus4mac-0.5.0.dmg** from [Releases](https://github.com/hulryung/rufus4mac/releases/latest).
 2. Open the DMG and drag **RufusApp** onto **Applications**.
 3. Launch RufusApp from Applications. When updating, quit the previous version before replacing it.
 
@@ -28,7 +28,15 @@ Intel Macs are not supported by this prebuilt DMG. An Intel build from source ne
 Intel build of wimlib. The architecture of the **Mac running the app** is separate from the PC
 that will use the USB: choose installation media and drivers appropriate for that PC.
 
-## What's new in 0.4.0
+## What's new in 0.5.0
+
+- **Four UI languages:** English, Korean, Japanese and Spanish, with system detection and a saved language override.
+- **Review before starting:** inspect the target, image, Windows options and driver selection together.
+- **Attachment checks:** revalidate the selected disk before writing, including when macOS reuses a disk number.
+- **Task reports:** save the original settings, success or failure, and diagnostic details as JSON.
+- **Recovery guidance:** understandable next steps alongside technical errors.
+
+### Task-based workflow introduced in 0.4.0
 
 - **Three explicit tasks:** create bootable media, format a USB, or add drivers to an existing USB.
 - **A clearer workflow:** numbered setup cards, a fixed action/progress area, and explanations of
@@ -42,8 +50,6 @@ that will use the USB: choose installation media and drivers appropriate for tha
 
 ## App language
 
-Available in the current source build; the published 0.4.0 release predates this feature.
-
 The app supports **English, 한국어, 日本語, and Español**. By default it follows macOS's preferred
 languages, falling back to English when no supported language matches. Open the **globe button** or
 press **⌘,** to choose a language or return to **System default**. The selection applies immediately
@@ -55,7 +61,7 @@ Catalog contents and external-tool diagnostics retain their original text. See
 
 <img src="docs/screenshots/languages-0.5.0.png" alt="Korean language settings in rufus4mac 0.5.0" width="620">
 
-## Review and task reports (current source build)
+## Review and task reports
 
 Before starting, a scrollable review lists the selected USB and image, the normalized format name,
 Windows setup options, and included driver models. Erasing a disk requires the explicit final action;

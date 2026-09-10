@@ -156,3 +156,13 @@ Failure paths:
 - [x] Exported the failure report and verified `succeeded: false` and original error (`docs/qa/format-failure-0.5.0.json`).
 - [x] Detached the temporary image afterward. Existing physical USBs and other disk images were not written.
 - [ ] Inspect bootable-media and standalone-driver review variants before public release.
+
+## Final 0.5.0 review
+
+- [x] Inspected Windows preflight with local-account name and on/off states, using a clearly named synthetic fixture; no write was started.
+- [x] Inspected raw-image preflight with post-write verification enabled; no write was started.
+- [x] Inspected standalone driver preflight: destination path, model name, size and existing-file preservation guidance; cancelled without copying.
+- [x] Restarted the installed app after verification to clear temporary image and target selections; removed the owned QA mount.
+- [x] README now describes 0.5.0 and links the new screenshots and translation guide.
+
+Historical unchecked entries above describe earlier passes or optional hardware checks, not failed automated tests. Full Windows installation on a target PC has not been independently verified; hardware boot was reported by the user.
