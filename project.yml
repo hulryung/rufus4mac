@@ -15,6 +15,8 @@ targets:
       - path: App
     dependencies:
       - package: RufusPkg
+        product: Localization
+      - package: RufusPkg
         product: DiskDiscovery
       - package: RufusPkg
         product: RufusCore
@@ -27,7 +29,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.huconn.rufus4mac
-        MARKETING_VERSION: "0.4.0"
+        MARKETING_VERSION: "0.5.0"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_LSUIElement: NO

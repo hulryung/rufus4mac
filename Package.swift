@@ -5,6 +5,7 @@ let package = Package(
     name: "rufus4mac",
     platforms: [.macOS(.v13)],
     products: [
+        .library(name: "Localization", targets: ["Localization"]),
         .library(name: "RufusCore", targets: ["RufusCore"]),
         .library(name: "DiskDiscovery", targets: ["DiskDiscovery"]),
         .library(name: "SystemTools", targets: ["SystemTools"]),
@@ -13,6 +14,8 @@ let package = Package(
         .library(name: "WimSplit", targets: ["WimSplit"]),
     ],
     targets: [
+        .target(name: "Localization", resources: [.process("Resources")]),
+        .testTarget(name: "LocalizationTests", dependencies: ["Localization"]),
         .target(name: "RufusCore"),
         .target(name: "DiskDiscovery"),
         .target(name: "TestSupport"),

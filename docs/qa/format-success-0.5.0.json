@@ -1,0 +1,14 @@
+{
+  "appVersion" : "0.5.0",
+  "finishedAt" : "2026-09-10T22:42:29Z",
+  "options" : [
+    "GPT",
+    "exFAT",
+    "RUFUS4MAC"
+  ],
+  "phase" : "formatting",
+  "startedAt" : "2026-09-10T22:42:27Z",
+  "succeeded" : true,
+  "target" : "disk4",
+  "task" : "Format USB"
+}

@@ -1,3 +1,4 @@
+import Localization
 import DiskDiscovery
 import DiskFormat
 import RufusCore
@@ -6,6 +7,9 @@ import UniformTypeIdentifiers
 import WindowsMedia
 
 struct ContentView: View {
+    @EnvironmentObject private var language: AppLanguage
+    @Binding var showingLanguageSettings: Bool
+    private func tr(_ message: Message) -> String { language.text(message) }
     @StateObject private var diskVM = DiskListViewModel()
     @StateObject private var image = ImageSelection()
     @StateObject private var writer = ElevatedWriter()
@@ -21,6 +25,9 @@ struct ContentView: View {
         case drivers = "Add drivers"
     }
     @State private var mode: TaskMode = .bootable
+    @State private var report: OperationReport?
+    @State private var reportExportError: String?
+    @State private var targetChanged = false
     @State private var showResult = false
     @State private var showConfirm = false
     @State private var importing = false
@@ -72,7 +79,7 @@ struct ContentView: View {
     }
     private var selectedDriverBytes: UInt64 { selectedDrivers.reduce(0) { $0 + $1.totalSize } }
     private var driverSummary: String {
-        "\(selectedDrivers.count) model\(selectedDrivers.count == 1 ? "" : "s") · \(DriverLibrary.sizeLabel(selectedDriverBytes))"
+        tr("Models: \(selectedDrivers.count) · \(DriverLibrary.sizeLabel(selectedDriverBytes))")
     }
     private var formatMode: Bool { mode == .format }
     private var configurationLocked: Bool { activeRunning || image.hashing || checksums.isRunning }
@@ -82,30 +89,30 @@ struct ContentView: View {
             fileSystem: .init(rawValue: fmtFSRaw) ?? .exfat, label: fmtLabel)
     }
     private var readiness: String {
-        if activeRunning { return "Keep the USB connected until the task finishes." }
+        if activeRunning { return tr("Keep the USB connected until the task finishes.") }
         if driverMode {
-            if driverCopy.selected == nil { return "Select a mounted USB volume to receive the drivers." }
-            if selectedDrivers.isEmpty { return "Add drivers to your library, then select at least one model." }
+            if driverCopy.selected == nil { return tr("Select a mounted USB volume to receive the drivers.") }
+            if selectedDrivers.isEmpty { return tr("Add drivers to your library, then select at least one model.") }
             if let volume = driverCopy.selected, selectedDriverBytes > volume.availableBytes {
-                return "The selected USB needs more free space for these drivers."
+                return tr("The selected USB needs more free space for these drivers.")
             }
-            return "Adds files to Drivers/. Existing files are kept. Run the installers on your Windows PC."
+            return tr("Adds files to Drivers/. Existing files are kept. Run the installers on your Windows PC.")
         }
-        if bootableMode && image.imageURL == nil { return "Choose an image to get started." }
-        if checksums.isRunning { return "Computing checksums. Please wait before continuing." }
-        if image.hashing { return "Checking the image. This may take a few minutes." }
-        if bootableMode, let error = image.errorText { return error }
-        if diskVM.selected == nil { return "Select the USB drive you want to use." }
-        if bootableMode && oversize { return "Choose a USB drive with more space." }
+        if bootableMode && image.imageURL == nil { return tr("Choose an image to get started.") }
+        if checksums.isRunning { return tr("Computing checksums. Please wait before continuing.") }
+        if image.hashing { return tr("Checking the image. This may take a few minutes.") }
+        if bootableMode, let error = image.errorText { return language.raw(error) }
+        if diskVM.selected == nil { return tr("Select the USB drive you want to use.") }
+        if bootableMode && oversize { return tr("Choose a USB drive with more space.") }
         if bootableMode && image.isWindows && winLocalAccount
             && winUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         {
-            return "Enter a username for the Windows local account."
+            return tr("Enter a username for the Windows local account.")
         }
         if bootableMode && image.isWindows && includeDrivers && selectedDrivers.isEmpty {
-            return "Select at least one driver model, or turn off Include drivers."
+            return tr("Select at least one driver model, or turn off Include drivers.")
         }
-        return "All data on the selected USB drive will be erased."
+        return tr("All data on the selected USB drive will be erased.")
     }
 
     // Active-writer accessors: route to whichever writer is relevant for the selected image type.
@@ -149,8 +156,8 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             header.padding(24)
-            Picker("Task", selection: $mode) {
-                ForEach(TaskMode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+            Picker(tr("Task"), selection: $mode) {
+                ForEach(TaskMode.allCases, id: \.self) { Text(language.raw($0.rawValue)).tag($0) }
             }
             .pickerStyle(.segmented).labelsHidden()
             .disabled(configurationLocked)
@@ -159,36 +166,36 @@ struct ContentView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     if bootableMode {
-                        field(title: "1  Choose an image", systemImage: "opticaldiscdrive") {
+                        field(title: tr("1  Choose an image"), systemImage: "opticaldiscdrive") {
                             HStack(spacing: 8) {
                                 if image.hashing { ProgressView().controlSize(.small) }
-                                Text(image.imageURL?.lastPathComponent ?? "No image selected")
+                                Text(image.imageURL?.lastPathComponent ?? tr("No image selected"))
                                     .lineLimit(1).truncationMode(.middle)
                                     .foregroundStyle(image.imageURL == nil ? .secondary : .primary)
                                 Spacer(minLength: 8)
-                                Button(image.imageURL == nil ? "Choose image…" : "Change…") {
+                                Button(image.imageURL == nil ? tr("Choose image…") : tr("Change…")) {
                                     importing = true
                                 }
                             }
                             if let url = image.imageURL {
                                 Text(
-                                    "\(DriverLibrary.sizeLabel(image.imageSize)) · \(image.hashing ? "Checking image…" : (image.isWindows ? "Windows installer · FAT32 / MBR" : "Disk image · direct copy"))"
+                                    "\(DriverLibrary.sizeLabel(image.imageSize)) · \(image.hashing ? tr("Checking image…") : (image.isWindows ? tr("Windows installer · FAT32 / MBR") : tr("Disk image · direct copy")))"
                                 )
                                 .font(.caption).foregroundStyle(.secondary)
                                 Text(url.path).font(.caption).foregroundStyle(.secondary)
                                     .lineLimit(1).truncationMode(.middle).help(url.path)
                                 if let error = image.errorText {
-                                    Label(error, systemImage: "exclamationmark.circle")
+                                    Label(language.raw(error), systemImage: "exclamationmark.circle")
                                         .font(.callout).foregroundStyle(.red)
                                 }
                             } else {
-                                Text("Select a Windows or Linux image. ISO, IMG and DMG files are supported.")
+                                Text(tr("Select a Windows or Linux image. ISO, IMG and DMG files are supported."))
                                     .font(.callout).foregroundStyle(.secondary)
                             }
                         }
 
                         if image.imageURL != nil {
-                            DisclosureGroup("Image checksums") {
+                            DisclosureGroup(tr("Image checksums")) {
                                 VStack(alignment: .leading, spacing: 6) {
                                     if let r = checksums.result {
                                         checksumRow("MD5", r.md5)
@@ -196,12 +203,12 @@ struct ContentView: View {
                                         checksumRow("SHA-256", r.sha256)
                                     } else if checksums.isRunning {
                                         ProgressView(value: checksums.fraction) {
-                                            Text("Computing… \(Int(checksums.fraction * 100))%")
+                                            Text(tr("Computing… \(Int(checksums.fraction * 100))%"))
                                         }
                                     } else if let e = checksums.errorText {
-                                        Text(e).font(.callout).foregroundStyle(.red)
+                                        Text(language.raw(e)).font(.callout).foregroundStyle(.red)
                                     } else {
-                                        Button("Compute checksums") {
+                                        Button(tr("Compute checksums")) {
                                             if let p = image.imageURL?.path {
                                                 checksums.compute(imagePath: p)
                                             }
@@ -216,12 +223,12 @@ struct ContentView: View {
                         driverDestination
                     } else {
                     field(
-                        title: formatMode ? "1  Choose a USB drive" : "2  Choose a USB drive",
+                        title: formatMode ? tr("1  Choose a USB drive") : tr("2  Choose a USB drive"),
                         systemImage: "externaldrive"
                     ) {
                         HStack(spacing: 8) {
-                            Picker("USB drive", selection: $diskVM.selected) {
-                                Text("Select a disk").tag(DiskInfo?.none)
+                            Picker(tr("USB drive"), selection: $diskVM.selected) {
+                                Text(tr("Select a disk")).tag(DiskInfo?.none)
                                 ForEach(diskVM.disks) { d in
                                     Text("\(d.model) — \(d.displaySize) · \(d.bsdName)").tag(
                                         DiskInfo?.some(d))
@@ -233,20 +240,20 @@ struct ContentView: View {
                             } label: {
                                 Image(systemName: "arrow.clockwise")
                             }
-                            .help("Rescan disks")
-                            .accessibilityLabel("Refresh USB drives")
+                            .help(tr("Rescan disks"))
+                            .accessibilityLabel(tr("Refresh USB drives"))
                         }
                         if diskVM.disks.isEmpty {
-                            Label("Connect a USB drive, then click Refresh.", systemImage: "cable.connector")
+                            Label(tr("Connect a USB drive, then click Refresh."), systemImage: "cable.connector")
                                 .font(.callout).foregroundStyle(.secondary)
                         } else if let disk = diskVM.selected {
                             Text(
-                                "\(disk.devicePath) · \(disk.displaySize) · All existing data will be erased"
+                                tr("\(disk.devicePath) · \(disk.displaySize) · All existing data will be erased")
                             )
                             .font(.caption).foregroundStyle(.secondary)
                         } else {
                             Text(
-                                "Only external drives are listed. Check the name and capacity before continuing."
+                                tr("Only external drives are listed. Check the name and capacity before continuing.")
                             )
                             .font(.caption).foregroundStyle(.secondary)
                         }
@@ -255,34 +262,34 @@ struct ContentView: View {
                     }
 
                     if formatMode {
-                        field(title: "2  Set up the format", systemImage: "gearshape") {
+                        field(title: tr("2  Set up the format"), systemImage: "gearshape") {
                             VStack(alignment: .leading, spacing: 8) {
-                                Picker("Partition scheme", selection: $fmtSchemeRaw) {
+                                Picker(tr("Partition scheme"), selection: $fmtSchemeRaw) {
                                     ForEach(FormatOptions.PartitionScheme.allCases, id: \.rawValue) {
                                         Text($0.rawValue).tag($0.rawValue)
                                     }
                                 }
-                                Picker("File system", selection: $fmtFSRaw) {
+                                Picker(tr("File system"), selection: $fmtFSRaw) {
                                     ForEach(FormatOptions.FileSystem.allCases, id: \.rawValue) {
                                         Text($0.rawValue).tag($0.rawValue)
                                     }
                                 }
                                 HStack {
-                                    Text("Drive name")
-                                    TextField("Drive name", text: $fmtLabel).textFieldStyle(.roundedBorder)
+                                    Text(tr("Drive name"))
+                                    TextField(tr("Drive name"), text: $fmtLabel).textFieldStyle(.roundedBorder)
                                 }
-                                Text("The drive will be named \(formatOptions.normalizedLabel).")
+                                Text(tr("The drive will be named \(formatOptions.normalizedLabel)."))
                                     .font(.caption).foregroundStyle(.secondary)
                                 Text(
                                     fmtFSRaw == "exFAT"
-                                        ? "exFAT supports large files and works with macOS and Windows."
-                                        : "FAT32 works with older devices. Individual files must be smaller than 4 GB."
+                                        ? tr("exFAT supports large files and works with macOS and Windows.")
+                                        : tr("FAT32 works with older devices. Individual files must be smaller than 4 GB.")
                                 )
                                 .font(.caption).foregroundStyle(.secondary)
                                 Text(
                                     fmtSchemeRaw == "GPT"
-                                        ? "GPT is suited to modern computers."
-                                        : "MBR offers compatibility with older computers."
+                                        ? tr("GPT is suited to modern computers.")
+                                        : tr("MBR offers compatibility with older computers.")
                                 )
                                 .font(.caption).foregroundStyle(.secondary)
                             }
@@ -290,30 +297,29 @@ struct ContentView: View {
                     }
 
                     if bootableMode && image.isWindows {
-                        field(title: "3  Customize your installer", systemImage: "slider.horizontal.3") {
+                        field(title: tr("3  Customize your installer"), systemImage: "slider.horizontal.3") {
                             Text(
-                                "Windows files are copied and checked automatically. Large installation files are split to fit the USB."
+                                tr("Windows files are copied and checked automatically. Large installation files are split to fit the USB.")
                             )
                             .font(.callout).foregroundStyle(.secondary)
-                            DisclosureGroup("Windows setup preferences") {
+                            DisclosureGroup(tr("Windows setup preferences")) {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Toggle("Bypass Windows 11 compatibility checks", isOn: $bypassWin11)
-                                    Toggle("Skip privacy questions", isOn: $winSkipPrivacy)
-                                    Toggle("Use this Mac's region & language", isOn: $winUseRegion)
-                                    Toggle("Disable BitLocker auto-encryption", isOn: $winDisableBitLocker)
-                                    Toggle("Create local account", isOn: $winLocalAccount)
+                                    Toggle(tr("Bypass Windows 11 compatibility checks"), isOn: $bypassWin11)
+                                    Toggle(tr("Skip privacy questions"), isOn: $winSkipPrivacy)
+                                    Toggle(tr("Use this Mac's region & language"), isOn: $winUseRegion)
+                                    Toggle(tr("Disable BitLocker auto-encryption"), isOn: $winDisableBitLocker)
+                                    Toggle(tr("Create local account"), isOn: $winLocalAccount)
                                     if winLocalAccount {
-                                        TextField("Username", text: $winUsername)
+                                        TextField(tr("Username"), text: $winUsername)
                                             .textFieldStyle(.roundedBorder)
                                     }
-                                    DisclosureGroup("Advanced") {
+                                    DisclosureGroup(tr("Advanced")) {
                                         Toggle(
-                                            "Split install.wim without wimlib (experimental)",
+                                            tr("Split install.wim without wimlib (experimental)"),
                                             isOn: $useNativeWimSplit)
                                         if useNativeWimSplit {
                                             Text(
-                                                "Uses the built-in MIT-licensed splitter instead of the bundled "
-                                                    + "wimlib. Verified against wimlib, but not yet by a real Windows install."
+                                                tr("Uses the built-in MIT-licensed splitter instead of the bundled wimlib. Verified against wimlib, but not yet by a real Windows install.")
                                             )
                                             .font(.caption).foregroundStyle(.secondary)
                                             .fixedSize(horizontal: false, vertical: true)
@@ -328,24 +334,24 @@ struct ContentView: View {
                     if driverMode {
                         driverLibraryCard
                     } else if bootableMode && image.isWindows {
-                        field(title: "4  Include drivers", systemImage: "shippingbox") {
-                            Toggle("Include drivers on this USB", isOn: $includeDrivers)
+                        field(title: tr("4  Include drivers"), systemImage: "shippingbox") {
+                            Toggle(tr("Include drivers on this USB"), isOn: $includeDrivers)
                                 .toggleStyle(.switch)
-                            Text("Carry Wi-Fi and other installers for use after Windows setup. Nothing is installed automatically.")
+                            Text(tr("Carry Wi-Fi and other installers for use after Windows setup. Nothing is installed automatically."))
                                 .font(.callout).foregroundStyle(.secondary)
                             if includeDrivers { driverLibraryContent }
                         }
                     }
 
                     if !image.isWindows && bootableMode && image.imageURL != nil {
-                        field(title: "3  Review write options", systemImage: "checkmark.shield") {
-                            Toggle("Verify after writing (recommended)", isOn: $verifyAfterWrite)
+                        field(title: tr("3  Review write options"), systemImage: "checkmark.shield") {
+                            Toggle(tr("Verify after writing (recommended)"), isOn: $verifyAfterWrite)
                                 .toggleStyle(.checkbox)
                             Text(
-                                "Reads the USB back and compares it with your image. Verification takes extra time."
+                                tr("Reads the USB back and compares it with your image. Verification takes extra time.")
                             )
                             .font(.caption).foregroundStyle(.secondary)
-                            Text("Driver bundles can be included when creating Windows install media. For other images, use Add drivers later if the USB has a writable volume.")
+                            Text(tr("Driver bundles can be included when creating Windows install media. For other images, use Add drivers later if the USB has a writable volume."))
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
@@ -358,7 +364,7 @@ struct ContentView: View {
             actionFooter
         }
         .background(Color(nsColor: .windowBackgroundColor))
-        .frame(minWidth: 540, idealWidth: 600, minHeight: 600, idealHeight: 760)
+        .frame(minWidth: 620, idealWidth: 660, minHeight: 600, idealHeight: 760)
         .tint(accent)
         .onChange(of: mode) { _ in
             showResult = false
@@ -371,7 +377,10 @@ struct ContentView: View {
         .onAppear { diskVM.refresh() }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { now = $0 }
         .onChange(of: activeRunning) { running in
-            if running { clock.start() } else { clock.finish() }
+            if running { clock.start() } else {
+                clock.finish()
+                if activeFinished { report?.finish(phase: activePhase, error: activeError) }
+            }
             now = Date()
         }
         .onChange(of: activeFraction) { f in clock.observe(phase: activePhase, fraction: f) }
@@ -394,60 +403,127 @@ struct ContentView: View {
         ) {
             driverNamingSheet
         }
+        .sheet(isPresented: $showingLanguageSettings) { LanguageSettingsView().environmentObject(language) }
         .sheet(isPresented: $downloadingDrivers) { driverDownloadSheet }
         .sheet(isPresented: $pickingModel) { catalogSheet }
         .sheet(isPresented: $managingCatalogs) { catalogManagerSheet }
-        .alert(driverMode ? "Add drivers to \(driverCopy.selected?.name ?? "USB")?" : "Erase \(diskVM.selected?.model ?? "")?", isPresented: $showConfirm) {
-            Button("Cancel", role: .cancel) {}
-            if driverMode {
-                Button("Add drivers", action: startWrite)
-            } else {
-                Button(formatMode ? "Erase and Format" : "Erase and Write", role: .destructive) {
+        .sheet(isPresented: $showConfirm) { reviewSheet }
+        .alert(tr("USB selection changed"), isPresented: $targetChanged) {
+            Button(tr("Done")) {}
+        } message: {
+            Text(tr("The selected USB is no longer available or has changed. Select it again and review the task before starting."))
+        }
+        .alert(tr("Could not save report"), isPresented: Binding(
+            get: { reportExportError != nil }, set: { if !$0 { reportExportError = nil } }
+        )) {
+            Button(tr("Done")) { reportExportError = nil }
+        } message: { Text(reportExportError ?? "") }
+    }
+
+    private var reviewSheet: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Label(tr("Review before starting"), systemImage: "checklist")
+                .font(.title2.bold())
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    reviewRow(tr("Task"), language.raw(mode.rawValue))
+                    if driverMode, let volume = driverCopy.selected {
+                        reviewRow(tr("USB volume"), "\(volume.name) · \(volume.bsdName)\n\(volume.mountPath)")
+                        Text(tr("Adds files to Drivers/. Existing files are kept. Run the installers on your Windows PC."))
+                            .foregroundStyle(.secondary)
+                    } else if let disk = diskVM.selected {
+                        reviewRow(tr("USB drive"), "\(disk.model) · \(disk.displaySize)\n\(disk.devicePath)")
+                        Label(tr("All data on the selected USB drive will be erased."), systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                    Divider()
+                    if formatMode {
+                        reviewRow(tr("Partition scheme"), fmtSchemeRaw)
+                        reviewRow(tr("File system"), fmtFSRaw)
+                        reviewRow(tr("Drive name"), formatOptions.normalizedLabel)
+                    } else if bootableMode {
+                        reviewRow(tr("Choose image…"), image.imageURL?.path ?? "—")
+                        if image.isWindows {
+                            Text(tr("Windows installer · FAT32 / MBR")).font(.headline)
+                            reviewOption(tr("Bypass Windows 11 compatibility checks"), bypassWin11)
+                            reviewOption(tr("Skip privacy questions"), winSkipPrivacy)
+                            reviewOption(tr("Use this Mac's region & language"), winUseRegion)
+                            reviewOption(tr("Disable BitLocker auto-encryption"), winDisableBitLocker)
+                            reviewOption(tr("Create local account"), winLocalAccount)
+                            if winLocalAccount { reviewRow(tr("Username"), winUsername.trimmingCharacters(in: .whitespacesAndNewlines)) }
+                            reviewOption(tr("Split install.wim without wimlib (experimental)"), useNativeWimSplit)
+                            reviewOption(tr("Include drivers on this USB"), includeDrivers)
+                        } else {
+                            reviewOption(tr("Verify after writing (recommended)"), verifyAfterWrite)
+                        }
+                    }
+                    if driverMode || (bootableMode && image.isWindows && includeDrivers) {
+                        reviewRow(tr("Add drivers"), driverSummary)
+                        ForEach(selectedDrivers) { profile in
+                            Text(profile.name).font(.callout)
+                        }
+                    }
+                }.frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+            }.frame(maxHeight: 420)
+            HStack {
+                Button(tr("Cancel"), role: .cancel) { showConfirm = false }
+                    .keyboardShortcut(.cancelAction)
+                Spacer()
+                Button(driverMode ? tr("Add drivers") : formatMode ? tr("Erase and Format") : tr("Erase and Write")) {
+                    showConfirm = false
                     startWrite()
                 }
+                .buttonStyle(.borderedProminent).tint(driverMode ? accent : .red)
+                .disabled(!canWrite)
             }
-        } message: {
-            if driverMode {
-                Text("Copy \(driverSummary) to \(driverCopy.selected?.mountPath ?? "")/Drivers/. Existing files will not be replaced. Eject the USB in Finder when copying finishes.")
-            } else if formatMode {
-                Text(
-                    "All data on \(diskVM.selected?.devicePath ?? "") (\(diskVM.selected?.displaySize ?? "")) will be permanently erased.\n\nFormat: \(fmtFSRaw) · \(fmtSchemeRaw)\nDrive name: \(formatOptions.normalizedLabel)"
-                )
-            } else {
-                Text(
-                    "All data on \(diskVM.selected?.devicePath ?? "") (\(diskVM.selected?.displaySize ?? "")) will be permanently erased.\n\nImage: \(image.imageURL?.lastPathComponent ?? "")"
-                )
-            }
+        }.padding(24).frame(width: 520)
+    }
+
+    private func reviewRow(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).font(.caption).foregroundStyle(.secondary)
+            Text(value).fixedSize(horizontal: false, vertical: true)
         }
     }
 
+    private func reviewOption(_ title: String, _ enabled: Bool) -> some View {
+        HStack(alignment: .top) {
+            Image(systemName: enabled ? "checkmark.circle.fill" : "minus.circle")
+                .foregroundStyle(enabled ? Color.green : Color.secondary)
+            Text(title).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            Text(enabled ? tr("On") : tr("Off")).foregroundStyle(.secondary)
+        }.font(.callout)
+    }
+
     private var driverDestination: some View {
-        field(title: "1  Choose a USB volume", systemImage: "externaldrive") {
+        field(title: tr("1  Choose a USB volume"), systemImage: "externaldrive") {
             HStack {
-                Picker("USB volume", selection: $driverCopy.selected) {
-                    Text("Select a volume").tag(USBVolume?.none)
+                Picker(tr("USB volume"), selection: $driverCopy.selected) {
+                    Text(tr("Select a volume")).tag(USBVolume?.none)
                     ForEach(driverCopy.volumes) { volume in
-                        Text("\(volume.name) · \(DriverLibrary.sizeLabel(volume.availableBytes)) free · \(volume.bsdName)")
+                        Text(tr("\(volume.name) · \(DriverLibrary.sizeLabel(volume.availableBytes)) free · \(volume.bsdName)"))
                             .tag(USBVolume?.some(volume))
                     }
                 }.labelsHidden()
                 Button { driverCopy.refresh() } label: { Image(systemName: "arrow.clockwise") }
-                    .help("Refresh mounted USB volumes").accessibilityLabel("Refresh mounted USB volumes")
+                    .help(tr("Refresh mounted USB volumes")).accessibilityLabel(tr("Refresh mounted USB volumes"))
             }
             if driverCopy.volumes.isEmpty {
-                Text("Connect a USB that appears in Finder, then refresh. Only mounted, writable external volumes are listed.")
+                Text(tr("Connect a USB that appears in Finder, then refresh. Only mounted, writable external volumes are listed."))
                     .font(.callout).foregroundStyle(.secondary)
             } else if let volume = driverCopy.selected {
                 Text(volume.mountPath).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
             }
-            Label("Adds driver files without formatting the USB.", systemImage: "checkmark.shield")
+            Label(tr("Adds driver files without formatting the USB."), systemImage: "checkmark.shield")
                 .font(.callout).foregroundStyle(.secondary)
         }
     }
 
     private var driverLibraryCard: some View {
-        field(title: "2  Choose drivers", systemImage: "shippingbox") {
-            Text("Keep installers ready for a PC without Wi-Fi. After Windows starts, open Drivers on the USB and run the installer for your model.")
+        field(title: tr("2  Choose drivers"), systemImage: "shippingbox") {
+            Text(tr("Keep installers ready for a PC without Wi-Fi. After Windows starts, open Drivers on the USB and run the installer for your model."))
                 .font(.callout).foregroundStyle(.secondary)
             driverLibraryContent
         }
@@ -456,7 +532,7 @@ struct ContentView: View {
     private var driverLibraryContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             if drivers.profiles.isEmpty {
-                Text("Your driver library is empty. Choose a model from a catalog, add downloaded files, or paste a driver link.")
+                Text(tr("Your driver library is empty. Choose a model from a catalog, add downloaded files, or paste a driver link."))
                     .font(.callout).foregroundStyle(.secondary)
             } else {
                 ForEach(drivers.profiles) { profile in
@@ -465,22 +541,22 @@ struct ContentView: View {
                                              set: { _ in drivers.toggle(profile.name) })) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(profile.name).fixedSize(horizontal: false, vertical: true)
-                                Text("\(profile.files.count) file\(profile.files.count == 1 ? "" : "s") · \(DriverLibrary.sizeLabel(profile.totalSize))")
+                                Text(tr("Files: \(profile.files.count) · \(DriverLibrary.sizeLabel(profile.totalSize))"))
                                     .font(.caption).foregroundStyle(.secondary)
                                 if profile.files.isEmpty {
-                                    Text("Add files to this model before selecting it.")
+                                    Text(tr("Add files to this model before selecting it."))
                                         .font(.caption).foregroundStyle(.secondary)
                                 }
                             }
                         }
                         .toggleStyle(.checkbox).disabled(profile.files.isEmpty)
-                        .accessibilityLabel("\(profile.name), \(profile.files.count) files, \(DriverLibrary.sizeLabel(profile.totalSize))")
+                        .accessibilityLabel(tr("\(profile.name), \(profile.files.count) files, \(DriverLibrary.sizeLabel(profile.totalSize))"))
                         Spacer(minLength: 0)
                         Button { drivers.delete(profileNamed: profile.name) } label: {
                             Image(systemName: "trash")
                         }
-                        .buttonStyle(.borderless).help("Remove \(profile.name) from the library")
-                        .accessibilityLabel("Remove \(profile.name) from the library")
+                        .buttonStyle(.borderless).help(tr("Remove \(profile.name) from the library"))
+                        .accessibilityLabel(tr("Remove \(profile.name) from the library"))
                     }
                     if profile.id != drivers.profiles.last?.id { Divider() }
                 }
@@ -498,13 +574,13 @@ struct ContentView: View {
 
     private var driverImportActions: some View {
         HStack {
-            Button("From catalog…") {
+            Button(tr("From catalog…")) {
                 driverError = nil; modelSearch = ""
                 catalogs.refresh(); catalogEntry = catalogs.entries.first; pickingModel = true
             }
-            Menu("More") {
-                Button("From files…", action: pickDriverFiles)
-                Button("From link…") {
+            Menu(tr("More")) {
+                Button(tr("From files…"), action: pickDriverFiles)
+                Button(tr("From link…")) {
                     driverURLText = ""; driverURLModel = ""
                     driverError = nil; downloadingDrivers = true
                 }
@@ -514,12 +590,12 @@ struct ContentView: View {
 
     private var driverLibraryActions: some View {
         HStack {
-            Button("Show in Finder") {
+            Button(tr("Show in Finder")) {
                 drivers.refresh()
                 NSWorkspace.shared.activateFileViewerSelecting([DriverLibrary.rootURL])
             }
             Button { drivers.refresh() } label: { Image(systemName: "arrow.clockwise") }
-                .help("Refresh driver library").accessibilityLabel("Refresh driver library")
+                .help(tr("Refresh driver library")).accessibilityLabel(tr("Refresh driver library"))
         }
     }
 
@@ -542,7 +618,7 @@ struct ContentView: View {
                         Text(
                             formatMode
                                 ? "\(fmtFSRaw) · \(fmtSchemeRaw)"
-                                : (image.isWindows ? "Windows installer" : "Disk image")
+                                : (image.isWindows ? tr("Windows installer") : tr("Disk image"))
                         )
                         .foregroundStyle(.secondary)
                     }.font(.callout)
@@ -558,7 +634,7 @@ struct ContentView: View {
                     Spacer()
                     Label(
                         activeRunning
-                            ? "Working…" : (driverMode ? "Add drivers to USB…" : formatMode ? "Erase & format USB…" : "Create bootable USB…"),
+                            ? tr("Working…") : (driverMode ? tr("Add drivers to USB…") : formatMode ? tr("Erase & format USB…") : tr("Create bootable USB…")),
                         systemImage: formatMode ? "eraser" : "arrow.down.to.line")
                     Spacer()
                 }.padding(.vertical, 4)
@@ -574,20 +650,20 @@ struct ContentView: View {
     /// rather than a pile of installers.
     private var driverNamingSheet: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Add drivers").font(.headline)
+            Text(tr("Add drivers")).font(.headline)
             Text(pendingDriverFiles.map(\.lastPathComponent).joined(separator: ", "))
                 .font(.caption).foregroundStyle(.secondary).lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
-            TextField("Model, e.g. NT950XEV", text: $newProfileName)
+            TextField(tr("Model, e.g. NT950XEV"), text: $newProfileName)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit(commitDriverFiles)
             if let e = driverError {
-                Text(e).font(.caption).foregroundStyle(.red)
+                Text(language.raw(e)).font(.caption).foregroundStyle(.red)
             }
             HStack {
                 Spacer()
-                Button("Cancel") { pendingDriverFiles = []; driverError = nil }
-                Button("Add", action: commitDriverFiles)
+                Button(tr("Cancel")) { pendingDriverFiles = []; driverError = nil }
+                Button(tr("Add"), action: commitDriverFiles)
                     .buttonStyle(.borderedProminent).tint(accent)
                     .disabled(DriverLibrary.sanitize(newProfileName).isEmpty)
             }
@@ -603,8 +679,8 @@ struct ContentView: View {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
-        panel.message = "Choose the driver installers or folders for this model"
-        panel.prompt = "Add"
+        panel.message = tr("Choose the driver installers or folders for this model")
+        panel.prompt = tr("Add")
         guard panel.runModal() == .OK, !panel.urls.isEmpty else { return }
         newProfileName = ""
         driverError = nil
@@ -624,23 +700,23 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Find drivers for your PC").font(.title2.bold())
-                    Text("Search by model, model number, or catalog.")
+                    Text(tr("Find drivers for your PC")).font(.title2.bold())
+                    Text(tr("Search by model, model number, or catalog."))
                         .font(.callout).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button("Manage catalogs…") {
+                Button(tr("Manage catalogs…")) {
                     catalogURLText = ""; driverError = nil; managingCatalogs = true
                 }.disabled(driverDownloading)
             }
-            TextField("Search models and catalogs", text: $modelSearch)
+            TextField(tr("Search models and catalogs"), text: $modelSearch)
                 .textFieldStyle(.roundedBorder).disabled(driverDownloading)
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 8) {
                     if filteredModels.isEmpty {
                         Text(catalogs.entries.isEmpty
-                             ? "No models are available. Add a catalog using Manage catalogs."
-                             : "No matching models. Try a model number or another search.")
+                             ? tr("No models are available. Add a catalog using Manage catalogs.")
+                             : tr("No matching models. Try a model number or another search."))
                             .foregroundStyle(.secondary).padding(.vertical, 20)
                     }
                     ForEach(filteredModels) { entry in
@@ -664,7 +740,7 @@ struct ContentView: View {
                         }
                         .buttonStyle(.plain).disabled(driverDownloading)
                         .accessibilityLabel("\(entry.name), \(entry.model.modelNumbers), \(entry.catalogName)")
-                        .accessibilityValue(catalogEntry?.id == entry.id ? "Selected" : "Not selected")
+                        .accessibilityValue(catalogEntry?.id == entry.id ? tr("Selected") : tr("Not selected"))
                     }
                 }
             }.frame(minHeight: 150, maxHeight: 240)
@@ -672,39 +748,39 @@ struct ContentView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     if let entry = catalogEntry {
-                        Text("Packages for \(entry.name)").font(.headline)
+                        Text(tr("Packages for \(entry.name)")).font(.headline)
                         ForEach(catalogs.catalog(for: entry).map { $0.packages(for: entry.model) } ?? []) { package in
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(package.displayName).fontWeight(.medium)
                                 Text(package.covers).foregroundStyle(.secondary)
-                                Label(DriverLibrary.sizeLabel(package.sizeBytes) + " · SHA-256 checked on download",
+                                Label(tr("\(DriverLibrary.sizeLabel(package.sizeBytes)) · SHA-256 checked on download"),
                                       systemImage: "checkmark.shield").foregroundStyle(.secondary)
                             }.font(.callout).fixedSize(horizontal: false, vertical: true)
                         }
                     } else {
-                        Text("Select a model to review its driver packages.").foregroundStyle(.secondary)
+                        Text(tr("Select a model to review its driver packages.")).foregroundStyle(.secondary)
                     }
                     ForEach(catalogs.problems, id: \.self) { problem in
                         Label(problem, systemImage: "exclamationmark.triangle")
                             .font(.caption).foregroundStyle(.orange)
                     }
                     if let error = driverError {
-                        Text(error).font(.callout).foregroundStyle(.red).textSelection(.enabled)
+                        Text(language.raw(error)).font(.callout).foregroundStyle(.red).textSelection(.enabled)
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }.frame(minHeight: 90, maxHeight: 180)
             HStack {
                 if driverDownloading {
                     ProgressView().controlSize(.small)
-                    Text("Downloading and verifying…").font(.caption).foregroundStyle(.secondary)
+                    Text(tr("Downloading and verifying…")).font(.caption).foregroundStyle(.secondary)
                 } else {
-                    Text("\(filteredModels.count) of \(catalogs.entries.count) models")
+                    Text(tr("\(filteredModels.count) of \(catalogs.entries.count) models"))
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button("Cancel") { pickingModel = false; driverError = nil }
+                Button(tr("Cancel")) { pickingModel = false; driverError = nil }
                     .disabled(driverDownloading)
-                Button("Add to library", action: installFromCatalog)
+                Button(tr("Add to library"), action: installFromCatalog)
                     .buttonStyle(.borderedProminent).tint(accent)
                     .disabled(driverDownloading || catalogEntry == nil)
             }
@@ -720,9 +796,8 @@ struct ContentView: View {
     /// Catalogs are files, so managing them is add, update and remove.
     private var catalogManagerSheet: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Driver catalogs").font(.headline)
-            Text("A catalog is a JSON file listing devices and the driver packages they need. "
-                 + "Share one by sending the file or hosting it at a link.")
+            Text(tr("Driver catalogs")).font(.headline)
+            Text(tr("A catalog is a JSON file listing devices and the driver packages they need. Share one by sending the file or hosting it at a link."))
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -732,14 +807,14 @@ struct ContentView: View {
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
                             VStack(alignment: .leading, spacing: 1) {
                                 Text(c.name).fontWeight(.medium).fixedSize(horizontal: false, vertical: true)
-                                Text("\(c.catalog.models.count) devices"
-                                     + (c.origin.isRemovable ? "" : " · built in")
+                                Text(tr("Devices: \(c.catalog.models.count)")
+                                     + (c.origin.isRemovable ? "" : " · " + tr("Built in"))
                                      + (c.catalog.updatedAt.map { " · \($0)" } ?? ""))
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                             Spacer(minLength: 0)
                             if c.canUpdate {
-                                Button("Update") { updateCatalog(c) }
+                                Button(tr("Update")) { updateCatalog(c) }
                                     .controlSize(.small).disabled(catalogBusy)
                             }
                             if c.origin.isRemovable {
@@ -767,26 +842,26 @@ struct ContentView: View {
             }
 
             HStack(spacing: 8) {
-                Button("Add file…", action: importCatalogFile).disabled(catalogBusy)
+                Button(tr("Add file…"), action: importCatalogFile).disabled(catalogBusy)
                 TextField("https://…/catalog.json", text: $catalogURLText)
                     .textFieldStyle(.roundedBorder).disabled(catalogBusy)
-                Button("Fetch", action: fetchCatalog)
+                Button(tr("Fetch"), action: fetchCatalog)
                     .disabled(catalogBusy || catalogURLText.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .controlSize(.small)
 
             if let e = driverError {
-                Text(e).font(.caption).foregroundStyle(.red)
+                Text(language.raw(e)).font(.caption).foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
             }
             HStack {
                 if catalogBusy { ProgressView().controlSize(.small) }
-                Button("Show in Finder") {
+                Button(tr("Show in Finder")) {
                     NSWorkspace.shared.activateFileViewerSelecting([CatalogLibrary.rootURL])
                 }
                 .controlSize(.small)
                 Spacer()
-                Button("Done") {
+                Button(tr("Done")) {
                     managingCatalogs = false
                     driverError = nil
                     catalogEntry = catalogs.entries.first
@@ -802,7 +877,7 @@ struct ContentView: View {
         panel.canChooseFiles = true
         panel.allowsMultipleSelection = true
         panel.allowedContentTypes = [.json]
-        panel.message = "Choose one or more driver catalog files"
+        panel.message = tr("Choose one or more driver catalog files")
         guard panel.runModal() == .OK else { return }
         driverError = nil
         for url in panel.urls {
@@ -861,28 +936,27 @@ struct ContentView: View {
     /// the link from the download centre instead.
     private var driverDownloadSheet: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Download drivers").font(.headline)
-            Text("Paste the link to the driver file. Samsung's download centre builds links "
-                 + "dynamically, so right-click the download and copy its address.")
+            Text(tr("Download drivers")).font(.headline)
+            Text(tr("Paste the link to the driver file. Samsung's download centre builds links dynamically, so right-click the download and copy its address."))
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             TextField("https://…", text: $driverURLText)
                 .textFieldStyle(.roundedBorder).disabled(driverDownloading)
-            TextField("Model, e.g. NT950XEV", text: $driverURLModel)
+            TextField(tr("Model, e.g. NT950XEV"), text: $driverURLModel)
                 .textFieldStyle(.roundedBorder).disabled(driverDownloading)
             if let e = driverError {
-                Text(e).font(.caption).foregroundStyle(.red)
+                Text(language.raw(e)).font(.caption).foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
             }
             HStack {
                 if driverDownloading {
                     ProgressView().controlSize(.small)
-                    Text("Downloading…").font(.caption).foregroundStyle(.secondary)
+                    Text(tr("Downloading…")).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button("Cancel") { downloadingDrivers = false; driverError = nil }
+                Button(tr("Cancel")) { downloadingDrivers = false; driverError = nil }
                     .disabled(driverDownloading)
-                Button("Download", action: startDriverDownload)
+                Button(tr("Download"), action: startDriverDownload)
                     .buttonStyle(.borderedProminent).tint(accent)
                     .disabled(driverDownloading
                               || DriverLibrary.sanitize(driverURLModel).isEmpty
@@ -940,11 +1014,17 @@ struct ContentView: View {
                     Text(Self.appVersion)
                         .font(.callout.monospacedDigit())
                         .foregroundStyle(.secondary)
-                        .accessibilityLabel("Version \(Self.appVersion)")
+                        .accessibilityLabel(tr("Version \(Self.appVersion)"))
                 }
-                Text("Your next installation starts here.").font(.subheadline).foregroundStyle(.secondary)
+                Text(tr("Your next installation starts here.")).font(.subheadline).foregroundStyle(.secondary)
             }
             Spacer()
+            if report?.finishedAt != nil {
+                Button(action: exportReport) { Image(systemName: "square.and.arrow.up") }
+                    .help(tr("Save last task report…")).accessibilityLabel(tr("Save last task report…"))
+            }
+            Button { showingLanguageSettings = true } label: { Image(systemName: "globe") }
+                .help(tr("Language settings…")).accessibilityLabel(tr("Language settings…"))
         }
     }
 
@@ -955,31 +1035,36 @@ struct ContentView: View {
             HStack(spacing: 6) {
                 if activeFinished, activeError == nil {
                     Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                    Text(driverMode ? "Drivers copied and checked" : formatMode ? "USB formatted" : "Your USB is ready").fontWeight(.medium)
+                    Text(driverMode ? tr("Drivers copied and checked") : formatMode ? tr("USB formatted") : tr("Your USB is ready")).fontWeight(.medium)
                 } else if let err = activeError {
                     Image(systemName: "xmark.octagon.fill").foregroundStyle(.red)
                     ScrollView {
-                        Text(err).font(.callout).foregroundStyle(.secondary)
-                            .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(tr("Operation failed")).fontWeight(.medium)
+                            Text(tr("Check the USB connection and free space, and close apps using the drive. Review the details below before trying again. You can save a report with the share button."))
+                                .font(.callout).fixedSize(horizontal: false, vertical: true)
+                            Text(language.raw(err)).font(.callout).foregroundStyle(.secondary)
+                                .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     }.frame(maxHeight: 100)
                 } else {
-                    Text("\(activePhase.capitalized)…").fontWeight(.medium)
+                    Text(language.raw(activePhase)).fontWeight(.medium)
                     Spacer()
-                    Text("\(pct)% of this step").monospacedDigit().foregroundStyle(.secondary)
+                    Text(tr("\(pct)% of this step")).monospacedDigit().foregroundStyle(.secondary)
                 }
                 if activeFinished, activeError == nil, let e = clock.elapsed(at: now) {
                     Spacer()
-                    Text("in \(ProgressClock.format(e))")
+                    Text(tr("in \(ProgressClock.format(e))"))
                         .monospacedDigit().font(.callout).foregroundStyle(.secondary)
                 }
             }
             if activeFinished && activeError == nil {
                 Text(
                     driverMode || formatMode
-                        ? "Eject the drive in Finder before unplugging it."
+                        ? tr("Eject the drive in Finder before unplugging it.")
                         : (image.isWindows
-                            ? "The drive has been ejected. You can unplug it and start your installation."
-                            : "Eject the drive in Finder before unplugging it.")
+                            ? tr("The drive has been ejected. You can unplug it and start your installation.")
+                            : tr("Eject the drive in Finder before unplugging it."))
                 )
                 .font(.caption).foregroundStyle(.secondary)
             }
@@ -988,12 +1073,12 @@ struct ContentView: View {
             }
             if !activeFinished, activeError == nil, let e = clock.elapsed(at: now) {
                 HStack(spacing: 4) {
-                    Text("\(ProgressClock.format(e)) elapsed")
+                    Text(tr("\(ProgressClock.format(e)) elapsed"))
                     if let r = clock.remaining(at: now) {
                         Text("·")
-                        Text("about \(ProgressClock.format(r)) left")
+                        Text(tr("about \(ProgressClock.format(r)) left"))
                     } else {
-                        Text("· estimating…")
+                        Text(tr("· estimating…"))
                     }
                 }
                 .font(.caption).monospacedDigit().foregroundStyle(.secondary)
@@ -1012,8 +1097,8 @@ struct ContentView: View {
             } label: {
                 Image(systemName: "doc.on.doc")
             }
-            .buttonStyle(.borderless).help("Copy \(label)")
-            .accessibilityLabel("Copy \(label) checksum")
+            .buttonStyle(.borderless).help(tr("Copy \(label)"))
+            .accessibilityLabel(tr("Copy \(label) checksum"))
         }
     }
 
@@ -1055,8 +1140,44 @@ struct ContentView: View {
             disableBitLocker: winDisableBitLocker)
     }
 
+    private func exportReport() {
+        guard let report, report.finishedAt != nil else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.nameFieldStringValue = "rufus4mac-report.json"
+        panel.message = tr("The report includes the image filename, selected options and diagnostic details. Review it before sharing.")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do { try report.encoded().write(to: url, options: .atomic) }
+        catch { reportExportError = error.localizedDescription }
+    }
+
     private func startWrite() {
         guard canWrite else { return }
+        if !driverMode {
+            guard let selected = diskVM.selected,
+                  DiskDiscovery.removableDisks().contains(selected) else {
+                diskVM.refresh()
+                targetChanged = true
+                return
+            }
+        }
+        var options: [String] = []
+        if formatMode { options = [fmtSchemeRaw, fmtFSRaw, formatOptions.normalizedLabel] }
+        if bootableMode {
+            options = image.isWindows
+                ? ["Windows FAT32 / MBR", "bypassWin11=\(bypassWin11)", "localAccount=\(winLocalAccount)",
+                   "skipPrivacy=\(winSkipPrivacy)", "useRegion=\(winUseRegion)",
+                   "disableBitLocker=\(winDisableBitLocker)", "nativeSplitter=\(useNativeWimSplit)",
+                   "includeDrivers=\(includeDrivers)"]
+                : ["verify=\(verifyAfterWrite)"]
+        }
+        if driverMode || (bootableMode && image.isWindows && includeDrivers) {
+            options += selectedDrivers.map { "driver=\($0.name)" }.sorted()
+        }
+        report = OperationReport(appVersion: Self.appVersion, task: mode.rawValue,
+            sourceName: bootableMode ? image.imageURL?.lastPathComponent : nil,
+            target: driverMode ? (driverCopy.selected?.bsdName ?? "") : (diskVM.selected?.bsdName ?? ""),
+            options: options)
         showResult = true
         if driverMode {
             driverCopy.start(profileNames: selectedDrivers.map(\.name), root: DriverLibrary.rootURL.path)

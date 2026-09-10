@@ -40,6 +40,32 @@ that will use the USB: choose installation media and drivers appropriate for tha
 - **More visible checks:** copy image hashes, preview the actual formatted drive name, and see
   input/read errors. Setup controls are locked while checking an image or running a task.
 
+## App language
+
+Available in the current source build; the published 0.4.0 release predates this feature.
+
+The app supports **English, 한국어, 日本語, and Español**. By default it follows macOS's preferred
+languages, falling back to English when no supported language matches. Open the **globe button** or
+press **⌘,** to choose a language or return to **System default**. The selection applies immediately
+and is remembered on the next launch.
+
+This changes the app UI, not the Windows installer language or the target PC's regional settings.
+Catalog contents and external-tool diagnostics retain their original text. See
+[Adding languages and managing translation resources](docs/localization.md) for the JSON configuration.
+
+<img src="docs/screenshots/languages-0.5.0.png" alt="Korean language settings in rufus4mac 0.5.0" width="620">
+
+## Review and task reports (current source build)
+
+Before starting, a scrollable review lists the selected USB and image, the normalized format name,
+Windows setup options, and included driver models. Erasing a disk requires the explicit final action;
+USB attachment identity is checked again before handing the task to a writer.
+
+After a task finishes, use the share button beside the language button to save its JSON report.
+The report retains the original task options even if you switch tasks afterward. It includes the
+image filename and any diagnostic error text, so review it before sharing. Reports are kept in memory
+until the app exits or another task starts; no report is uploaded automatically.
+
 ## Choose a task
 
 | Task | Use it for | Effect on existing USB data |

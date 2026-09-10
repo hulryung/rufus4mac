@@ -115,3 +115,44 @@ Failure paths:
 - [x] The old Applications copy was replaced with 0.4.0; the installed app launches the new single-window UI.
 - [x] README screenshots captured from the signed 0.4.0 build: initial setup, add drivers, catalog, format.
 - [ ] End-to-end boot and Windows installation on a destination PC; no hardware boot claim is made for this release.
+
+## User-reported hardware validation (2026-09-10)
+
+- [x] User confirmed that the USB boots successfully.
+- [x] User confirmed USB connection and automatic ejection behavior.
+- [ ] Completing a full Windows installation was not separately reported.
+
+## Multilingual interface
+
+- [x] Full test suite: 218 tests passed, including language fallback and interpolation checks.
+- [ ] Inspect Korean, English, Japanese and Spanish screens at minimum window width.
+- [ ] Change language without losing selected task or settings; relaunch to check persistence.
+
+- [x] Final app build and all 7 localization tests pass.
+- UI verification remains incomplete: macOS reports no accessible window for the running app despite granted permissions. The installed 0.4.0 app was not replaced in this verification pass.
+
+## Completion pass (2026-09-11)
+
+- [x] Full regression suite: 221 tests passed, including report outcomes and reused BSD attachment identity.
+- [x] Debug app build passed after preflight, reporting and target revalidation changes.
+- [x] Korean, Japanese and Spanish settings screenshots inspected at 620-point main-window width.
+- [x] English/Korean/Japanese/Spanish switching changes the live main view and settings text.
+- [x] Saved Korean preference restored on launch.
+- [ ] Preflight interaction and report export in the app: coordinate input was refused because macOS reported no focused window. Semantic settings actions worked.
+- [ ] Signed build, installation and public release of the completion update.
+
+- [x] 0.5.0 signed/notarized DMG accepted: `e62f9ebc-27d7-40bb-b83b-a68624e1ef4a`; ticket stapled and validated.
+- [x] Installed 0.5.0 in Applications; Gatekeeper accepts the installed app.
+- [x] Only the installed RufusApp process remains; Korean setting restored and version 0.5.0 shown.
+- [x] Captured installed Korean UI and language-settings screenshots.
+
+## Installed 0.5.0 interaction verification
+
+- [x] Format review shows selected device, capacity, scheme, filesystem and normalized label; Cancel returns without running a task.
+- [x] Created an owned 64 MiB temporary image at `/tmp/rufus-0.5.0-qa.dmg`; formatted it through the installed app. `diskutil` confirmed GPT, exFAT and RUFUS4MAC.
+- [x] Saved the success report through NSSavePanel; checked actual JSON against the disk and task settings (`docs/qa/format-success-0.5.0.json`).
+- [x] With review open, detached and reattached the temporary image under the same BSD name. Starting was rejected, selection cleared, and localized recovery alert appeared.
+- [x] Attempted formatting the owned image attached read-only; operation failed with the expected writable-disk error and readable recovery guidance.
+- [x] Exported the failure report and verified `succeeded: false` and original error (`docs/qa/format-failure-0.5.0.json`).
+- [x] Detached the temporary image afterward. Existing physical USBs and other disk images were not written.
+- [ ] Inspect bootable-media and standalone-driver review variants before public release.

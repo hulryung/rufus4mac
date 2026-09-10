@@ -10,7 +10,7 @@ final class DiskListViewModel: ObservableObject {
     func refresh() {
         let found = DiskDiscovery.removableDisks()
         disks = found
-        if let sel = selected, !found.contains(where: { $0.id == sel.id }) {
+        if let sel = selected, !found.contains(sel) {
             selected = nil
         }
     }

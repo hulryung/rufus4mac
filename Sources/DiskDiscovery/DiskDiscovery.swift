@@ -36,8 +36,11 @@ public enum DiskDiscovery {
             let modelName = (desc[kDADiskDescriptionDeviceModelKey as String] as? String) ?? "Disk"
             let model = [vendor, modelName].filter { !$0.isEmpty }.joined(separator: " ")
 
+            var registryID: UInt64 = 0
+            let hasRegistryID = IORegistryEntryGetRegistryEntryID(service, &registryID) == KERN_SUCCESS
             results.append(DiskInfo(bsdName: bsdName, model: model.isEmpty ? "Disk" : model,
-                                    sizeBytes: size, isRemovable: removable))
+                                    sizeBytes: size, isRemovable: removable,
+                                    registryID: hasRegistryID ? registryID : nil))
         }
         return results
     }
