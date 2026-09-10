@@ -166,3 +166,6 @@ Failure paths:
 - [x] README now describes 0.5.0 and links the new screenshots and translation guide.
 
 Historical unchecked entries above describe earlier passes or optional hardware checks, not failed automated tests. Full Windows installation on a target PC has not been independently verified; hardware boot was reported by the user.
+
+- [x] Public `v0.5.0` release and both assets verified; GitHub DMG SHA-256 matches the local notarized artifact.
+- [x] Final installed process and UI show 0.5.0, Korean, no image selected and no disk selected.

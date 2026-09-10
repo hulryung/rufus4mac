@@ -8,6 +8,6 @@
 - Regression: all 221 tests passed. No source changes after the verified build.
 - Distribution: 0.5.0 Developer ID app and DMG accepted by Gatekeeper; Apple notarization accepted and stapled. Installed app version and single main window verified.
 - Documentation: README, screenshots, translation extension guide and release notes updated.
-- Publication: final GitHub tag/assets verification pending.
+- Publication: `v0.5.0` is public and latest; DMG and SHA-256 file uploaded. GitHub asset digest matches the notarized local DMG: `273d2ba6889707b3c1d010c5cd6766583bc9128322f026534cecc8e3a9b5bda9`. Release tag points to `6b959c4`; application sources match the validated build.
 
 Full Windows installation is a separate hardware check, not claimed here. The user confirmed boot, USB connection and automatic ejection. Named presets and automatic update checks remain optional future features; this release has no placeholder controls for them.
