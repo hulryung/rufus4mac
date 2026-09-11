@@ -7,7 +7,7 @@ raw disk images, builds Windows 10/11 installation USBs, and helps you bring dri
 a PC that cannot get online yet.
 
 <p align="center">
-  <img src="docs/screenshots/korean-0.5.0.png" alt="rufus4mac 0.5.0: Korean interface with three guided USB tasks" width="600">
+  <img src="docs/screenshots/english-0.5.0.png" alt="rufus4mac 0.5.0: English interface with three guided USB tasks" width="600">
 </p>
 
 [Download the latest release](https://github.com/hulryung/rufus4mac/releases/latest) ·
@@ -59,7 +59,7 @@ This changes the app UI, not the Windows installer language or the target PC's r
 Catalog contents and external-tool diagnostics retain their original text. See
 [Adding languages and managing translation resources](docs/localization.md) for the JSON configuration.
 
-<img src="docs/screenshots/languages-0.5.0.png" alt="Korean language settings in rufus4mac 0.5.0" width="620">
+<img src="docs/screenshots/languages-en-0.5.0.png" alt="English language settings in rufus4mac 0.5.0" width="620">
 
 ## Review and task reports
 
