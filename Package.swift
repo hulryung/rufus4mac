@@ -5,6 +5,7 @@ let package = Package(
     name: "rufus4mac",
     platforms: [.macOS(.v13)],
     products: [
+        .library(name: "DiskEvents", targets: ["DiskEvents"]),
         .library(name: "Localization", targets: ["Localization"]),
         .library(name: "RufusCore", targets: ["RufusCore"]),
         .library(name: "DiskDiscovery", targets: ["DiskDiscovery"]),
@@ -14,6 +15,7 @@ let package = Package(
         .library(name: "WimSplit", targets: ["WimSplit"]),
     ],
     targets: [
+        .target(name: "DiskEvents", linkerSettings: [.linkedFramework("DiskArbitration")]),
         .target(name: "Localization", resources: [.process("Resources")]),
         .testTarget(name: "LocalizationTests", dependencies: ["Localization"]),
         .target(name: "RufusCore"),

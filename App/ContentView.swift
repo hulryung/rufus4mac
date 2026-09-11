@@ -10,6 +10,11 @@ struct ContentView: View {
     @EnvironmentObject private var language: AppLanguage
     @Binding var showingLanguageSettings: Bool
     private func tr(_ message: Message) -> String { language.text(message) }
+    @StateObject private var diskChanges = DiskChangeMonitor()
+    @StateObject private var records = WorkspaceRecords()
+    @StateObject private var updates = UpdateChecker()
+    @State private var showingTools = false
+    @State private var presetNotice: String?
     @StateObject private var diskVM = DiskListViewModel()
     @StateObject private var image = ImageSelection()
     @StateObject private var writer = ElevatedWriter()
@@ -30,6 +35,7 @@ struct ContentView: View {
     @State private var targetChanged = false
     @State private var showResult = false
     @State private var showConfirm = false
+    @State private var confirmCancellation = false
     @State private var importing = false
     @AppStorage("verifyAfterWrite") private var verifyAfterWrite = true
     @AppStorage("bypassWin11") private var bypassWin11 = true
@@ -51,6 +57,12 @@ struct ContentView: View {
     @State private var driverURLText = ""
     @State private var driverURLModel = ""
     @State private var driverDownloading = false
+    @State private var downloadTask: Task<Void, Never>?
+    @State private var downloadedBytes: Int64 = 0
+    @State private var downloadTotal: Int64 = 0
+    @State private var downloadRetry = 0
+    @State private var downloadPackage = ""
+    @State private var downloadGeneration = UUID()
     @StateObject private var catalogs = CatalogLibrary()
     @State private var pickingModel = false
     @State private var catalogEntry: CatalogEntry?
@@ -244,7 +256,7 @@ struct ContentView: View {
                             .accessibilityLabel(tr("Refresh USB drives"))
                         }
                         if diskVM.disks.isEmpty {
-                            Label(tr("Connect a USB drive, then click Refresh."), systemImage: "cable.connector")
+                            Label(tr("Connect a USB drive. It will appear automatically."), systemImage: "cable.connector")
                                 .font(.callout).foregroundStyle(.secondary)
                         } else if let disk = diskVM.selected {
                             Text(
@@ -370,17 +382,21 @@ struct ContentView: View {
             showResult = false
             if driverMode { driverCopy.refresh() }
         }
-        .onChange(of: driverCopy.selected) { _ in if !activeRunning { showResult = false } }
+        .onChange(of: driverCopy.selected) { value in if !activeRunning && value != nil { showResult = false } }
         .onChange(of: drivers.selected) { _ in if !activeRunning { showResult = false } }
         .onChange(of: image.imageURL) { _ in showResult = false }
-        .onChange(of: diskVM.selected) { _ in if !activeRunning { showResult = false } }
-        .onAppear { diskVM.refresh() }
+        .onChange(of: diskVM.selected) { value in if !activeRunning && value != nil { showResult = false } }
+        .onAppear { diskChanges.start(); diskVM.refresh() }
+        .onReceive(diskChanges.changes.debounce(for: .milliseconds(300), scheduler: RunLoop.main)) { _ in
+            if !activeRunning && !showConfirm { diskVM.refresh(); driverCopy.refresh() }
+        }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { now = $0 }
+        .onReceive(writer.$finished.filter { $0 }) { _ in finishReport(phase: writer.phase, error: writer.errorText) }
+        .onReceive(winWriter.$finished.filter { $0 }) { _ in finishReport(phase: winWriter.phase, error: winWriter.errorText) }
+        .onReceive(formatRunner.$finished.filter { $0 }) { _ in finishReport(phase: formatRunner.phase, error: formatRunner.errorText) }
+        .onReceive(driverCopy.$finished.filter { $0 }) { _ in finishReport(phase: driverCopy.phase, error: driverCopy.errorText) }
         .onChange(of: activeRunning) { running in
-            if running { clock.start() } else {
-                clock.finish()
-                if activeFinished { report?.finish(phase: activePhase, error: activeError) }
-            }
+            if !running { diskVM.refresh(); driverCopy.refresh() }
             now = Date()
         }
         .onChange(of: activeFraction) { f in clock.observe(phase: activePhase, fraction: f) }
@@ -407,7 +423,25 @@ struct ContentView: View {
         .sheet(isPresented: $downloadingDrivers) { driverDownloadSheet }
         .sheet(isPresented: $pickingModel) { catalogSheet }
         .sheet(isPresented: $managingCatalogs) { catalogManagerSheet }
+        .alert(tr("Cancel this task?"), isPresented: $confirmCancellation) {
+            Button(tr("Keep working"), role: .cancel) {}
+            Button(tr("Cancel task"), role: .destructive) {
+                if driverMode { driverCopy.cancel() }
+                else if image.isWindows { winWriter.cancel() }
+                else { writer.cancel() }
+            }
+        } message: {
+            Text(tr("Cancellation waits for a safe boundary. The USB may be incomplete and must be recreated before use. Existing driver files are kept."))
+        }
         .sheet(isPresented: $showConfirm) { reviewSheet }
+        .sheet(isPresented: $showingTools) {
+            WorkflowToolsView(records: records, updates: updates, locked: configurationLocked,
+                version: Self.appVersion, makePreset: makePreset, applyPreset: applyPreset)
+                .environmentObject(language)
+        }
+        .alert(tr("Preset applied"), isPresented: Binding(get: { presetNotice != nil }, set: { if !$0 { presetNotice = nil } })) {
+            Button(tr("Done")) { presetNotice = nil }
+        } message: { Text(presetNotice ?? "") }
         .alert(tr("USB selection changed"), isPresented: $targetChanged) {
             Button(tr("Done")) {}
         } message: {
@@ -511,7 +545,7 @@ struct ContentView: View {
                     .help(tr("Refresh mounted USB volumes")).accessibilityLabel(tr("Refresh mounted USB volumes"))
             }
             if driverCopy.volumes.isEmpty {
-                Text(tr("Connect a USB that appears in Finder, then refresh. Only mounted, writable external volumes are listed."))
+                Text(tr("Connect a USB that appears in Finder. Mounted, writable external volumes appear automatically."))
                     .font(.callout).foregroundStyle(.secondary)
             } else if let volume = driverCopy.selected {
                 Text(volume.mountPath).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
@@ -603,6 +637,13 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 12) {
             if activeRunning || showResult { statusRow }
             if activeRunning {
+                if formatMode {
+                    Text(tr("Formatting cannot be interrupted safely. Wait for this step to finish.")).font(.caption).foregroundStyle(.secondary)
+                } else if driverCopy.cancellationRequested && driverMode || winWriter.cancellationRequested && image.isWindows && !driverMode || writer.cancellationRequested && !image.isWindows && !driverMode {
+                    Text(tr("Cancelling after the current step… Keep the USB connected.")).font(.caption)
+                } else {
+                    Button(tr("Cancel task…")) { confirmCancellation = true }
+                }
                 Label(readiness, systemImage: "cable.connector")
                     .font(.caption).foregroundStyle(.secondary)
             }
@@ -771,8 +812,7 @@ struct ContentView: View {
             }.frame(minHeight: 90, maxHeight: 180)
             HStack {
                 if driverDownloading {
-                    ProgressView().controlSize(.small)
-                    Text(tr("Downloading and verifying…")).font(.caption).foregroundStyle(.secondary)
+                    downloadStatus
                 } else {
                     Text(tr("\(filteredModels.count) of \(catalogs.entries.count) models"))
                         .font(.caption).foregroundStyle(.secondary)
@@ -780,7 +820,7 @@ struct ContentView: View {
                 Spacer()
                 Button(tr("Cancel")) { pickingModel = false; driverError = nil }
                     .disabled(driverDownloading)
-                Button(tr("Add to library"), action: installFromCatalog)
+                Button(driverError == nil ? tr("Add to library") : tr("Retry"), action: installFromCatalog)
                     .buttonStyle(.borderedProminent).tint(accent)
                     .disabled(driverDownloading || catalogEntry == nil)
             }
@@ -913,22 +953,51 @@ struct ContentView: View {
     }
 
     private func installFromCatalog() {
-        guard let entry = catalogEntry, let catalog = catalogs.catalog(for: entry) else { return }
+        guard let entry = catalogEntry, let catalog = catalogs.catalog(for: entry), !driverDownloading else { return }
         let packages = catalog.packages(for: entry.model)
         guard !packages.isEmpty else { return }
-        driverDownloading = true
-        driverError = nil
-        Task {
+        beginDownload()
+        let generation = downloadGeneration
+        downloadTask = Task {
             do {
-                for p in packages {
-                    try await drivers.install(package: p, forModel: entry.model.name, progress: { _ in })
+                for (index, p) in packages.enumerated() {
+                    try Task.checkCancellation()
+                    downloadPackage = tr("Package \(index + 1) of \(packages.count)")
+                    downloadedBytes = 0; downloadTotal = 0; downloadRetry = 0
+                    try await drivers.install(package: p, forModel: entry.model.name, progress: { bytes, total in
+                        Task { @MainActor in
+                            if downloadGeneration == generation { downloadedBytes = bytes; downloadTotal = total }
+                        }
+                    }, retrying: { attempt in
+                        Task { @MainActor in if downloadGeneration == generation { downloadRetry = attempt } }
+                    })
                 }
-                driverDownloading = false
                 pickingModel = false
             } catch {
-                driverDownloading = false
-                driverError = error.localizedDescription
+                driverError = Task.isCancelled ? tr("Download cancelled. You can retry when ready.") : error.localizedDescription
             }
+            driverDownloading = false; downloadTask = nil
+        }
+    }
+
+    private func beginDownload() {
+        driverDownloading = true; driverError = nil
+        downloadedBytes = 0; downloadTotal = 0; downloadRetry = 0; downloadPackage = ""
+        downloadGeneration = UUID()
+    }
+
+    private var downloadStatus: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if !downloadPackage.isEmpty { Text(downloadPackage).font(.caption) }
+            if downloadTotal > 0 {
+                ProgressView(value: min(1, Double(downloadedBytes) / Double(downloadTotal)))
+                Text("\(DriverLibrary.sizeLabel(UInt64(max(0, downloadedBytes)))) / \(DriverLibrary.sizeLabel(UInt64(downloadTotal)))").font(.caption)
+            } else {
+                ProgressView().controlSize(.small)
+                Text(tr("Downloading…")).font(.caption)
+            }
+            if downloadRetry > 0 { Text(tr("Retry \(downloadRetry) of 2")).font(.caption).foregroundStyle(.orange) }
+            Button(tr("Cancel download")) { downloadTask?.cancel() }
         }
     }
 
@@ -950,13 +1019,12 @@ struct ContentView: View {
             }
             HStack {
                 if driverDownloading {
-                    ProgressView().controlSize(.small)
-                    Text(tr("Downloading…")).font(.caption).foregroundStyle(.secondary)
+                    downloadStatus
                 }
                 Spacer()
                 Button(tr("Cancel")) { downloadingDrivers = false; driverError = nil }
                     .disabled(driverDownloading)
-                Button(tr("Download"), action: startDriverDownload)
+                Button(driverError == nil ? tr("Download") : tr("Retry"), action: startDriverDownload)
                     .buttonStyle(.borderedProminent).tint(accent)
                     .disabled(driverDownloading
                               || DriverLibrary.sanitize(driverURLModel).isEmpty
@@ -967,22 +1035,24 @@ struct ContentView: View {
     }
 
     private func startDriverDownload() {
-        guard let url = URL(string: driverURLText.trimmingCharacters(in: .whitespaces)) else {
+        guard !driverDownloading, let url = URL(string: driverURLText.trimmingCharacters(in: .whitespaces)) else {
             driverError = DriverLibraryError.badURL.localizedDescription
             return
         }
-        driverDownloading = true
-        driverError = nil
-        Task {
+        beginDownload()
+        let generation = downloadGeneration
+        downloadTask = Task {
             do {
-                try await drivers.download(from: url, toProfileNamed: driverURLModel,
-                                           progress: { _ in })
-                driverDownloading = false
+                try await drivers.download(from: url, toProfileNamed: driverURLModel, progress: { bytes, total in
+                    Task { @MainActor in if downloadGeneration == generation { downloadedBytes = bytes; downloadTotal = total } }
+                }, retrying: { attempt in
+                    Task { @MainActor in if downloadGeneration == generation { downloadRetry = attempt } }
+                })
                 downloadingDrivers = false
             } catch {
-                driverDownloading = false
-                driverError = error.localizedDescription
+                driverError = Task.isCancelled ? tr("Download cancelled. You can retry when ready.") : error.localizedDescription
             }
+            driverDownloading = false; downloadTask = nil
         }
     }
 
@@ -1023,6 +1093,8 @@ struct ContentView: View {
                 Button(action: exportReport) { Image(systemName: "square.and.arrow.up") }
                     .help(tr("Save last task report…")).accessibilityLabel(tr("Save last task report…"))
             }
+            Button { showingTools = true } label: { Image(systemName: "slider.horizontal.3") }
+                .help(tr("Presets, history and updates")).accessibilityLabel(tr("Presets, history and updates"))
             Button { showingLanguageSettings = true } label: { Image(systemName: "globe") }
                 .help(tr("Language settings…")).accessibilityLabel(tr("Language settings…"))
         }
@@ -1140,6 +1212,42 @@ struct ContentView: View {
             disableBitLocker: winDisableBitLocker)
     }
 
+    private func makePreset(_ name: String) -> SetupPreset {
+        SetupPreset(name: name, settings: [
+            "verify": String(verifyAfterWrite), "bypass": String(bypassWin11),
+            "local": String(winLocalAccount), "username": winUsername,
+            "privacy": String(winSkipPrivacy), "region": String(winUseRegion),
+            "bitlocker": String(winDisableBitLocker), "native": String(useNativeWimSplit),
+            "drivers": String(includeDrivers), "scheme": fmtSchemeRaw,
+            "filesystem": fmtFSRaw, "label": fmtLabel
+        ], driverNames: drivers.selected.sorted())
+    }
+
+    private func applyPreset(_ preset: SetupPreset) {
+        guard !configurationLocked else { return }
+        let s = preset.settings
+        verifyAfterWrite = Bool(s["verify"] ?? "true") ?? true
+        bypassWin11 = Bool(s["bypass"] ?? "false") ?? false
+        winLocalAccount = Bool(s["local"] ?? "false") ?? false
+        winUsername = s["username"] ?? ""
+        winSkipPrivacy = Bool(s["privacy"] ?? "false") ?? false
+        winUseRegion = Bool(s["region"] ?? "false") ?? false
+        winDisableBitLocker = Bool(s["bitlocker"] ?? "false") ?? false
+        useNativeWimSplit = Bool(s["native"] ?? "false") ?? false
+        includeDrivers = Bool(s["drivers"] ?? "false") ?? false
+        fmtSchemeRaw = FormatOptions.PartitionScheme(rawValue: s["scheme"] ?? "")?.rawValue ?? "GPT"
+        fmtFSRaw = FormatOptions.FileSystem(rawValue: s["filesystem"] ?? "")?.rawValue ?? "exFAT"
+        fmtLabel = s["label"] ?? "RUFUS4MAC"
+        drivers.refresh()
+        let available = Set(drivers.profiles.filter { !$0.files.isEmpty }.map(\.name))
+        let requested = Set(preset.driverNames)
+        drivers.setSelection(requested.intersection(available))
+        showResult = false
+        if !requested.isSubset(of: available) {
+            presetNotice = tr("Some saved drivers are missing from the library. Add them again before starting.")
+        }
+    }
+
     private func exportReport() {
         guard let report, report.finishedAt != nil else { return }
         let panel = NSSavePanel()
@@ -1149,6 +1257,13 @@ struct ContentView: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do { try report.encoded().write(to: url, options: .atomic) }
         catch { reportExportError = error.localizedDescription }
+    }
+
+    private func finishReport(phase: String, error: String?) {
+        guard report != nil, report?.finishedAt == nil else { return }
+        clock.finish()
+        report?.finish(phase: phase, error: error)
+        if let report { records.record(report) }
     }
 
     private func startWrite() {
@@ -1178,6 +1293,8 @@ struct ContentView: View {
             sourceName: bootableMode ? image.imageURL?.lastPathComponent : nil,
             target: driverMode ? (driverCopy.selected?.bsdName ?? "") : (diskVM.selected?.bsdName ?? ""),
             options: options)
+        if let report { records.record(report) }
+        clock.start()
         showResult = true
         if driverMode {
             driverCopy.start(profileNames: selectedDrivers.map(\.name), root: DriverLibrary.rootURL.path)

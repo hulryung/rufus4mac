@@ -11,19 +11,25 @@ final class WindowsWriter: NSObject, ObservableObject {
     @Published var isRunning: Bool = false
     @Published var errorText: String?
 
+    private var work: Task<Void, Never>?
+    @Published var cancellationRequested = false
+    func cancel() { guard isRunning else { return }; cancellationRequested = true; work?.cancel() }
+
     func start(isoPath: String, bsdName: String, customization: WindowsCustomization,
                useNativeSplitter: Bool = false,
                driverRoot: String? = nil, driverProfiles: [String] = []) {
         phase = "preparing"; fraction = 0; finished = false; isRunning = true; errorText = nil
-        Task.detached { [weak self] in
-            await self?.run(isoPath: isoPath, bsdName: bsdName, customization: customization,
+        cancellationRequested = false
+        work = Task.detached { [weak self] in
+            guard let self else { return }
+            await self.run(isoPath: isoPath, bsdName: bsdName, customization: customization,
                             useNativeSplitter: useNativeSplitter,
                             driverRoot: driverRoot, driverProfiles: driverProfiles)
         }
     }
 
     private nonisolated func set(_ phase: String, _ fraction: Double) async {
-        await MainActor.run { self.phase = phase; self.fraction = fraction }
+        await MainActor.run { if self.isRunning { self.phase = phase; self.fraction = fraction } }
     }
     private nonisolated func fail(_ m: String) async {
         await MainActor.run { self.errorText = m; self.finished = true; self.isRunning = false }
@@ -67,13 +73,16 @@ final class WindowsWriter: NSObject, ObservableObject {
         }
         let writer = WindowsUSBWriter(runner: runner, wim: splitter)
         do {
+            try Task.checkCancellation()
             let info = try inspector.mountAndInspect(isoPath: isoPath)
             defer { inspector.detach(mountPoint: info.mountPoint) }
             guard info.isWindows, let rel = info.installImageRelPath else {
                 await fail("Not a Windows ISO."); return
             }
+            try Task.checkCancellation()
             await set("formatting", 0)
             try writer.format(bsdName: bsdName, volumeName: "WIN")
+            try Task.checkCancellation()
             guard let mp = Self.findVolumeMountPoint(runner: runner, bsdName: bsdName, volumeName: "WIN") else {
                 await fail("Could not locate the formatted volume."); return
             }
@@ -81,6 +90,7 @@ final class WindowsWriter: NSObject, ObservableObject {
                                     installImageRelPath: rel,
                                     installImageSizeBytes: info.installImageSizeBytes,
                                     progress: { ph, fr in Task { await self.set(ph, fr) } })
+            try Task.checkCancellation()
             if !customization.isEmpty {
                 await set("customizing", 1)
                 try WindowsCustomizer.apply(usbRoot: mp, options: customization)
@@ -96,6 +106,7 @@ final class WindowsWriter: NSObject, ObservableObject {
             }
             // Eject flushes; if it fails the USB still holds unwritten data, so say so rather
             // than reporting a clean finish the user would act on by pulling the stick.
+            try Task.checkCancellation()
             let eject = try? runner.run("/usr/sbin/diskutil", ["eject", "/dev/\(bsdName)"])
             guard let eject, eject.status == 0 else {
                 await fail("The USB was written but could not be ejected: \(eject?.stderr ?? "diskutil failed"). Eject it in Finder before unplugging.")
@@ -103,7 +114,7 @@ final class WindowsWriter: NSObject, ObservableObject {
             }
             await MainActor.run { self.fraction = 1; self.finished = true; self.isRunning = false }
         } catch {
-            await fail("\(error)")
+            await fail(Task.isCancelled ? "Task cancelled. The USB may be incomplete. Eject it in Finder before unplugging, and recreate the media before using it." : "\(error)")
         }
     }
 }

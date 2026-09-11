@@ -42,6 +42,7 @@ public final class WindowsUSBWriter {
     public func copyAndSplit(mountedISORoot: String, usbMountPoint: String,
                              installImageRelPath: String, installImageSizeBytes: UInt64,
                              progress: (String, Double) -> Void) throws {
+        try Task.checkCancellation()
         let fm = FileManager.default
         let willSplit = installImageSizeBytes > splitThreshold
             && installImageRelPath.hasSuffix("install.wim")
@@ -59,6 +60,7 @@ public final class WindowsUSBWriter {
 
         progress("copying", 0)
         for e in entries {
+            try Task.checkCancellation()
             if willSplit && e.rel == installImageRelPath { continue }
             let dst = (usbMountPoint as NSString).appendingPathComponent(e.rel)
             try fm.createDirectory(atPath: (dst as NSString).deletingLastPathComponent,
@@ -70,6 +72,7 @@ public final class WindowsUSBWriter {
                     progress("copying", total == 0 ? 1 : Double(done) / Double(total))
                 }
             } catch {
+                if error is CancellationError { throw error }
                 // A bare Cocoa error names no file, which makes a copy failure unreadable
                 // ("Error Domain=NSCocoaErrorDomain Code=513"). Say which file it was.
                 throw WimToolError(message: "Could not copy \(e.rel) from the image: \(error.localizedDescription)")
@@ -78,6 +81,7 @@ public final class WindowsUSBWriter {
 
         try verifyCopy(entries: entries, usbMountPoint: usbMountPoint, skipping: willSplit ? installImageRelPath : nil)
 
+        try Task.checkCancellation()
         if willSplit {
             progress("splitting", 0)
             let srcWim = (mountedISORoot as NSString).appendingPathComponent(installImageRelPath)
@@ -86,6 +90,7 @@ public final class WindowsUSBWriter {
             let outSWM = (outDir as NSString).appendingPathComponent("install.swm")
             try wim.split(wim: srcWim, outFirstSWM: outSWM, chunkMB: splitChunkMB,
                           progress: { progress("splitting", $0) })
+            try Task.checkCancellation()
             try verifySplit(outDir: outDir, sourceSizeBytes: installImageSizeBytes)
             progress("splitting", 1)
         }
@@ -162,6 +167,7 @@ public final class WindowsUSBWriter {
     /// bookkeeping and go through `copyItem` as before.
     static func copyFile(from src: String, to dst: String, size: UInt64,
                          onCopied: (UInt64) -> Void) throws {
+        try Task.checkCancellation()
         let fm = FileManager.default
         guard size >= chunkedCopyThreshold else {
             try fm.copyItem(atPath: src, toPath: dst)
@@ -177,6 +183,7 @@ public final class WindowsUSBWriter {
         let output = try FileHandle(forWritingTo: URL(fileURLWithPath: dst))
         defer { try? output.close() }
         while true {
+            try Task.checkCancellation()
             guard let chunk = try input.read(upToCount: copyChunkSize), !chunk.isEmpty else { break }
             try output.write(contentsOf: chunk)
             onCopied(UInt64(chunk.count))

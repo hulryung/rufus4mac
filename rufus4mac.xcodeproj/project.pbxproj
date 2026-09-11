@@ -10,20 +10,24 @@
 		0BDECFE0DCD81BA07D3A314A /* DiskListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BF079F0C6B1EA348EFE2FAC /* DiskListViewModel.swift */; };
 		23953896DE9F8D7AF8BEC472 /* ImageSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4035948535B6A00E87094F5 /* ImageSelection.swift */; };
 		29C418BD19C71E3375EFED17 /* DriverLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 734A2490195341BCB9692A52 /* DriverLibrary.swift */; };
-		2BDC0CD683A1C55E33D7FE4F /* DiskFormat in Frameworks */ = {isa = PBXBuildFile; productRef = 7DD6ED711198F47A85AC1CD7 /* DiskFormat */; };
+		2BDC0CD683A1C55E33D7FE4F /* WindowsMedia in Frameworks */ = {isa = PBXBuildFile; productRef = 6D2D3E7972AE7DC5A3DC7FA7 /* WindowsMedia */; };
 		336822C5D4BC5FC506FF482D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9283A090DED74921A5C9759 /* ContentView.swift */; };
 		36D23CEE2A232F72835B0855 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 005D6C3078D122276B01989C /* InfoPlist.strings */; };
 		3D68279071F8AC8F3843B01D /* WindowsWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E02135202D237D0CE1790F36 /* WindowsWriter.swift */; };
-		437F9CBB5784262118433CFC /* WindowsMedia in Frameworks */ = {isa = PBXBuildFile; productRef = 6D2D3E7972AE7DC5A3DC7FA7 /* WindowsMedia */; };
-		5603028425CC2DC993702258 /* DiskDiscovery in Frameworks */ = {isa = PBXBuildFile; productRef = E37CFE9D0E3F7155A66C3947 /* DiskDiscovery */; };
+		437F9CBB5784262118433CFC /* SystemTools in Frameworks */ = {isa = PBXBuildFile; productRef = 78BACFE709A15BD8C298B6B5 /* SystemTools */; };
+		5603028425CC2DC993702258 /* Localization in Frameworks */ = {isa = PBXBuildFile; productRef = 17B2EA7FCA450AA10E066B3C /* Localization */; };
+		597DCDB8D9A2A22A2C11B314 /* WorkflowToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0D04BBC96A83F769BE7CD4E /* WorkflowToolsView.swift */; };
 		5EA4D7AC872FBDB6859FC638 /* CatalogLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6E47EECC672F40851481FCD /* CatalogLibrary.swift */; };
 		6D8A00B3C185192FBC2C5F72 /* ChecksumRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00FAC82309A3513379FD118F /* ChecksumRunner.swift */; };
-		77E06CA720367CAE36459F3A /* Localization in Frameworks */ = {isa = PBXBuildFile; productRef = 17B2EA7FCA450AA10E066B3C /* Localization */; };
-		81C0EC3CA586E54760ABD1F2 /* SystemTools in Frameworks */ = {isa = PBXBuildFile; productRef = 78BACFE709A15BD8C298B6B5 /* SystemTools */; };
+		6F829950DB82DE9188E4EC4E /* WorkspaceRecords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D184E67A8DE5DDEA1EE4F8 /* WorkspaceRecords.swift */; };
+		77E06CA720367CAE36459F3A /* DiskEvents in Frameworks */ = {isa = PBXBuildFile; productRef = B59442352DFE899E606D1A63 /* DiskEvents */; };
+		785611000F55DE33BC3EB410 /* DiskChangeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36633C17A24DC5F6C5E43E31 /* DiskChangeMonitor.swift */; };
+		7DD62F7A42D10395369844CB /* DiskFormat in Frameworks */ = {isa = PBXBuildFile; productRef = 7DD6ED711198F47A85AC1CD7 /* DiskFormat */; };
+		81C0EC3CA586E54760ABD1F2 /* RufusCore in Frameworks */ = {isa = PBXBuildFile; productRef = DFCC75988298AE57BBFCBCEA /* RufusCore */; };
 		9B179ABDAB26B3D6FE5AE2C3 /* AppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB80518ADF3B1455690C4672 /* AppLanguage.swift */; };
 		C7FB1424CA852C49E7FDD0C7 /* ElevatedWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD86C0CD50B072BC1B022B81 /* ElevatedWriter.swift */; };
 		DC7D482DC8E5C552311E3E72 /* FormatRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BFC40AE0E9D06D703B8E944 /* FormatRunner.swift */; };
-		DDBB44490A097AE2B92950B2 /* RufusCore in Frameworks */ = {isa = PBXBuildFile; productRef = DFCC75988298AE57BBFCBCEA /* RufusCore */; };
+		DDBB44490A097AE2B92950B2 /* DiskDiscovery in Frameworks */ = {isa = PBXBuildFile; productRef = E37CFE9D0E3F7155A66C3947 /* DiskDiscovery */; };
 		FECB7A625D0C40827702D555 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6FC3B6AE39D7A5B5B76C2AF8 /* Assets.xcassets */; };
 		FFDF8DD1C8CAE69949CA6EC6 /* RufusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF9FCE7DDBBF38F5573AE573 /* RufusApp.swift */; };
 /* End PBXBuildFile section */
@@ -32,7 +36,9 @@
 		00FAC82309A3513379FD118F /* ChecksumRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecksumRunner.swift; sourceTree = "<group>"; };
 		1277C5BA9B941D64D61CA577 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		159736C417976813F7440314 /* rufus4mac */ = {isa = PBXFileReference; lastKnownFileType = folder; name = rufus4mac; path = .; sourceTree = SOURCE_ROOT; };
+		36633C17A24DC5F6C5E43E31 /* DiskChangeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskChangeMonitor.swift; sourceTree = "<group>"; };
 		4BFC40AE0E9D06D703B8E944 /* FormatRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatRunner.swift; sourceTree = "<group>"; };
+		53D184E67A8DE5DDEA1EE4F8 /* WorkspaceRecords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRecords.swift; sourceTree = "<group>"; };
 		6B8DC883D71738725D58E059 /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		6FC3B6AE39D7A5B5B76C2AF8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		734A2490195341BCB9692A52 /* DriverLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriverLibrary.swift; sourceTree = "<group>"; };
@@ -45,6 +51,7 @@
 		C9283A090DED74921A5C9759 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		CD86C0CD50B072BC1B022B81 /* ElevatedWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElevatedWriter.swift; sourceTree = "<group>"; };
 		E02135202D237D0CE1790F36 /* WindowsWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowsWriter.swift; sourceTree = "<group>"; };
+		E0D04BBC96A83F769BE7CD4E /* WorkflowToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowToolsView.swift; sourceTree = "<group>"; };
 		EF9FCE7DDBBF38F5573AE573 /* RufusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RufusApp.swift; sourceTree = "<group>"; };
 		F88313E953118D651139E993 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -54,12 +61,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				77E06CA720367CAE36459F3A /* Localization in Frameworks */,
-				5603028425CC2DC993702258 /* DiskDiscovery in Frameworks */,
-				DDBB44490A097AE2B92950B2 /* RufusCore in Frameworks */,
-				81C0EC3CA586E54760ABD1F2 /* SystemTools in Frameworks */,
-				437F9CBB5784262118433CFC /* WindowsMedia in Frameworks */,
-				2BDC0CD683A1C55E33D7FE4F /* DiskFormat in Frameworks */,
+				77E06CA720367CAE36459F3A /* DiskEvents in Frameworks */,
+				5603028425CC2DC993702258 /* Localization in Frameworks */,
+				DDBB44490A097AE2B92950B2 /* DiskDiscovery in Frameworks */,
+				81C0EC3CA586E54760ABD1F2 /* RufusCore in Frameworks */,
+				437F9CBB5784262118433CFC /* SystemTools in Frameworks */,
+				2BDC0CD683A1C55E33D7FE4F /* WindowsMedia in Frameworks */,
+				7DD62F7A42D10395369844CB /* DiskFormat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -98,6 +106,7 @@
 				B6E47EECC672F40851481FCD /* CatalogLibrary.swift */,
 				00FAC82309A3513379FD118F /* ChecksumRunner.swift */,
 				C9283A090DED74921A5C9759 /* ContentView.swift */,
+				36633C17A24DC5F6C5E43E31 /* DiskChangeMonitor.swift */,
 				7BF079F0C6B1EA348EFE2FAC /* DiskListViewModel.swift */,
 				734A2490195341BCB9692A52 /* DriverLibrary.swift */,
 				CD86C0CD50B072BC1B022B81 /* ElevatedWriter.swift */,
@@ -105,6 +114,8 @@
 				C4035948535B6A00E87094F5 /* ImageSelection.swift */,
 				EF9FCE7DDBBF38F5573AE573 /* RufusApp.swift */,
 				E02135202D237D0CE1790F36 /* WindowsWriter.swift */,
+				E0D04BBC96A83F769BE7CD4E /* WorkflowToolsView.swift */,
+				53D184E67A8DE5DDEA1EE4F8 /* WorkspaceRecords.swift */,
 				9CC033DF0A1990B68FDEFCE7 /* Resources */,
 			);
 			path = App;
@@ -136,6 +147,7 @@
 			);
 			name = RufusApp;
 			packageProductDependencies = (
+				B59442352DFE899E606D1A63 /* DiskEvents */,
 				17B2EA7FCA450AA10E066B3C /* Localization */,
 				E37CFE9D0E3F7155A66C3947 /* DiskDiscovery */,
 				DFCC75988298AE57BBFCBCEA /* RufusCore */,
@@ -204,6 +216,7 @@
 				5EA4D7AC872FBDB6859FC638 /* CatalogLibrary.swift in Sources */,
 				6D8A00B3C185192FBC2C5F72 /* ChecksumRunner.swift in Sources */,
 				336822C5D4BC5FC506FF482D /* ContentView.swift in Sources */,
+				785611000F55DE33BC3EB410 /* DiskChangeMonitor.swift in Sources */,
 				0BDECFE0DCD81BA07D3A314A /* DiskListViewModel.swift in Sources */,
 				29C418BD19C71E3375EFED17 /* DriverLibrary.swift in Sources */,
 				C7FB1424CA852C49E7FDD0C7 /* ElevatedWriter.swift in Sources */,
@@ -211,6 +224,8 @@
 				23953896DE9F8D7AF8BEC472 /* ImageSelection.swift in Sources */,
 				FFDF8DD1C8CAE69949CA6EC6 /* RufusApp.swift in Sources */,
 				3D68279071F8AC8F3843B01D /* WindowsWriter.swift in Sources */,
+				597DCDB8D9A2A22A2C11B314 /* WorkflowToolsView.swift in Sources */,
+				6F829950DB82DE9188E4EC4E /* WorkspaceRecords.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -308,7 +323,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.huconn.rufus4mac;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
@@ -385,7 +400,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.huconn.rufus4mac;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
@@ -438,6 +453,10 @@
 		7DD6ED711198F47A85AC1CD7 /* DiskFormat */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = DiskFormat;
+		};
+		B59442352DFE899E606D1A63 /* DiskEvents */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DiskEvents;
 		};
 		DFCC75988298AE57BBFCBCEA /* RufusCore */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -1,0 +1,17 @@
+[
+  {
+    "appVersion" : "0.6.0",
+    "error" : "diskutil eraseDisk failed (1): \nUnable to begin erase operation: A writable disk is required (-69772)\n",
+    "finishedAt" : "2026-09-11T07:39:21Z",
+    "options" : [
+      "GPT",
+      "exFAT",
+      "RUFUS4MAC"
+    ],
+    "phase" : "formatting",
+    "startedAt" : "2026-09-11T07:39:21Z",
+    "succeeded" : false,
+    "target" : "disk5",
+    "task" : "Format USB"
+  }
+]

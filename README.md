@@ -7,16 +7,16 @@ raw disk images, builds Windows 10/11 installation USBs, and helps you bring dri
 a PC that cannot get online yet.
 
 <p align="center">
-  <img src="docs/screenshots/english-0.5.0.png" alt="rufus4mac 0.5.0: English interface with three guided USB tasks" width="600">
+  <img src="docs/screenshots/english-0.6.0.png" alt="rufus4mac 0.6.0: English interface with three guided USB tasks" width="600">
 </p>
 
 [Download the latest release](https://github.com/hulryung/rufus4mac/releases/latest) ·
-[Release notes](https://github.com/hulryung/rufus4mac/releases/tag/v0.5.0) ·
+[Release notes](https://github.com/hulryung/rufus4mac/releases/tag/v0.6.0) ·
 [Build from source](docs/ARCHITECTURE.md#build--test)
 
 ## Install
 
-1. Download **rufus4mac-0.5.0.dmg** from [Releases](https://github.com/hulryung/rufus4mac/releases/latest).
+1. Download the latest **rufus4mac DMG** from [Releases](https://github.com/hulryung/rufus4mac/releases/latest).
 2. Open the DMG and drag **RufusApp** onto **Applications**.
 3. Launch RufusApp from Applications. When updating, quit the previous version before replacing it.
 
@@ -27,6 +27,18 @@ background daemon, or Full Disk Access grant is needed to use the release.
 Intel Macs are not supported by this prebuilt DMG. An Intel build from source needs a matching
 Intel build of wimlib. The architecture of the **Mac running the app** is separate from the PC
 that will use the USB: choose installation media and drivers appropriate for that PC.
+
+## What's new in 0.6.0
+
+- **Automatic USB detection:** available drives update when you connect, disconnect or mount a device.
+- **Better driver downloads:** byte progress, cancellation, two automatic retries for temporary failures,
+  and a manual retry action. Valid packages already in the library are reused.
+- **Named presets:** save Windows preferences, format settings and selected driver models for next time.
+- **Persistent history:** keep the latest 100 tasks locally and export individual JSON reports.
+- **Safe cancellation:** stop copying or verification at a safe boundary, with guidance for the USB afterward.
+- **Update checks:** check the latest stable GitHub release from the app and open its download page.
+
+All new controls support English, Korean, Japanese and Spanish.
 
 ## What's new in 0.5.0
 
@@ -69,8 +81,41 @@ USB attachment identity is checked again before handing the task to a writer.
 
 After a task finishes, use the share button beside the language button to save its JSON report.
 The report retains the original task options even if you switch tasks afterward. It includes the
-image filename and any diagnostic error text, so review it before sharing. Reports are kept in memory
-until the app exits or another task starts; no report is uploaded automatically.
+image filename and any diagnostic error text, so review it before sharing. The latest 100 tasks are
+saved on this Mac and remain available in **Tools → History** after restarting. A task is recorded
+when it starts; **Unfinished** means the app stopped before it recorded a final result. No report
+is uploaded automatically. **Clear history…** removes local records, keeping USB files and exported reports.
+
+## Presets and updates
+
+<img src="docs/screenshots/tools-en-0.6.0.png" alt="English Tools window with presets, history and update tabs" width="620">
+
+Open the **sliders button** beside the globe to access Tools:
+
+- **Presets:** enter a name and save the current Windows options, verification preference, format
+  settings and selected driver models. **Apply** restores them. Image paths and USB targets are
+  deliberately omitted, so choose the destination for every task. Missing driver models are reported;
+  a preset does not download packages or start a write.
+- **History:** inspect completed, failed/cancelled or unfinished tasks and export their reports.
+- **Updates:** click **Check for updates** to query GitHub's latest stable release. If a newer version
+  exists, open its release page. Downloading and installation remain explicit actions; there is no
+  automatic background update check.
+
+Presets and history are stored as `presets.json` and `history.json` under
+`~/Library/Application Support/rufus4mac`. If a file cannot be read, the app reports the error
+and keeps it instead of silently replacing it.
+
+## Cancelling a task
+
+During image writing, Windows media creation or driver copying, use **Cancel task…** and review
+its confirmation. Keep the USB connected until the task stops. Copying and verification check
+for cancellation between chunks; a running format or WIM split finishes before cancellation
+continues. Format-only tasks cannot be interrupted from the app.
+
+A cancelled media-creation task can leave an incomplete USB: eject it in Finder and recreate the
+media before using it. Cancelling **Add drivers** preserves existing USB files and removes unfinished
+staging files; complete model folders published before cancellation can remain. Inspect these folders
+before retrying, because the app will not overwrite an existing model folder.
 
 ## Choose a task
 
@@ -87,7 +132,7 @@ The target lists exclude internal/system disks. You still choose the external di
 
 1. Select **Create bootable USB** and click **Choose image…**. Supported file extensions are
    `.iso`, `.img`, and `.dmg`. Wait for the image check to finish.
-2. Choose the target USB. Use the refresh button if you have just connected it.
+2. Connect the USB and choose it when it appears automatically. The refresh button is also available.
 3. Review the options, then click **Create bootable USB…** and confirm the disk to erase.
 4. Follow progress in the footer. Raw image writing uses a macOS authorization prompt.
 5. Wait for **Your USB is ready** and follow the ejection guidance before unplugging.
@@ -151,6 +196,12 @@ splitting, and verification have different speeds, so the percentage can restart
 | **More → From files…** | Imports local installers or whole extracted driver folders |
 | **More → From link…** | Downloads a file from a supplied link into a named model folder |
 | **Show in Finder** | Opens the library so you can inspect its files |
+
+Downloads show transferred bytes and a percentage when the server provides a total size. Use
+**Cancel download** to stop; **Retry** starts another attempt. Temporary network failures and HTTP
+408/429/5xx responses receive up to two automatic retries. Other HTTP errors and checksum mismatches
+are reported immediately. Previously verified catalog packages are reused on retry. A replacement
+is committed only after downloading and verification succeed, preserving any prior library file.
 
 **These files are carried, not automatically installed.** They are not injected into Windows Setup
 or installed on your Mac. Catalog hashes are checked against the catalog's declared values; only

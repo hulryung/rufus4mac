@@ -1,6 +1,7 @@
 import Foundation
 import DiskDiscovery
 import WindowsMedia
+import SystemTools
 
 /// The on-disk library of driver profiles, and the selection carried into the next write.
 ///
@@ -39,6 +40,8 @@ final class DriverLibrary: ObservableObject {
         persist()
     }
 
+    func setSelection(_ names: Set<String>) { selected = names; persist() }
+
     private func persist() {
         UserDefaults.standard.set(Array(selected).sorted(), forKey: Self.selectionKey)
     }
@@ -47,6 +50,7 @@ final class DriverLibrary: ObservableObject {
     func add(files: [URL], toProfileNamed model: String) throws {
         let name = Self.sanitize(model)
         guard !name.isEmpty else { throw DriverLibraryError.emptyName }
+        try Task.checkCancellation()
         let dir = Self.rootURL.appendingPathComponent(name, isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         for f in files {
@@ -65,28 +69,33 @@ final class DriverLibrary: ObservableObject {
     /// joins the library. This is an executable that will be run on a fresh Windows machine, so a
     /// download that does not match is discarded rather than kept.
     func install(package: DriverPackage, forModel model: String,
-                 progress: @escaping (Double) -> Void) async throws {
+                 progress: @escaping @Sendable (Int64, Int64) -> Void,
+                 retrying: @escaping @Sendable (Int) -> Void = { _ in }) async throws {
         let name = Self.sanitize(model)
         guard !name.isEmpty else { throw DriverLibraryError.emptyName }
-        let (temp, response) = try await URLSession.shared.download(from: package.url)
+        let existing = Self.rootURL.appendingPathComponent(name).appendingPathComponent(package.url.lastPathComponent)
+        if (try? await verifyDownload(existing, sha256: package.sha256)) != nil {
+            try Task.checkCancellation()
+            selected.insert(name); persist(); refresh(); progress(1, 1); return
+        }
+        let (temp, response) = try await DownloadClient.download(package.url, progress: progress, retrying: retrying)
+        defer { try? FileManager.default.removeItem(at: temp) }
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             try? FileManager.default.removeItem(at: temp)
             throw DriverLibraryError.httpStatus(http.statusCode)
         }
         do {
-            try DriverDownload.verify(fileAt: temp.path, matches: package.sha256)
+            try await verifyDownload(temp, sha256: package.sha256)
         } catch {
             try? FileManager.default.removeItem(at: temp)
             throw error
         }
+        try Task.checkCancellation()
         let dir = Self.rootURL.appendingPathComponent(name, isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let dst = dir.appendingPathComponent(package.url.lastPathComponent)
-        if FileManager.default.fileExists(atPath: dst.path) {
-            try FileManager.default.removeItem(at: dst)
-        }
-        try FileManager.default.moveItem(at: temp, to: dst)
-        progress(1)
+        try commitDownload(temp, to: dst)
+        progress(1, 1)
         selected.insert(name)
         persist()
         refresh()
@@ -99,33 +108,50 @@ final class DriverLibrary: ObservableObject {
     /// The host does serve files without a login once you have the link, though, so pasting one
     /// from the download centre works.
     func download(from url: URL, toProfileNamed model: String,
-                  progress: @escaping (Double) -> Void) async throws {
+                  progress: @escaping @Sendable (Int64, Int64) -> Void,
+                 retrying: @escaping @Sendable (Int) -> Void = { _ in }) async throws {
         let name = Self.sanitize(model)
         guard !name.isEmpty else { throw DriverLibraryError.emptyName }
         guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else {
             throw DriverLibraryError.badURL
         }
-        let (temp, response) = try await URLSession.shared.download(for: URLRequest(url: url),
-                                                                    delegate: nil)
+        let (temp, response) = try await DownloadClient.download(url, progress: progress, retrying: retrying)
+        defer { try? FileManager.default.removeItem(at: temp) }
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             try? FileManager.default.removeItem(at: temp)
             throw DriverLibraryError.httpStatus(http.statusCode)
         }
         // Content-Disposition when the server offers one, else the URL's own last component.
         var filename = response.suggestedFilename ?? url.lastPathComponent
-        if filename.isEmpty || filename == "/" { filename = "driver.bin" }
+        filename = (filename as NSString).lastPathComponent
+        if filename.isEmpty || filename == "/" || filename == "." || filename == ".." { filename = "driver.bin" }
 
+        try Task.checkCancellation()
         let dir = Self.rootURL.appendingPathComponent(name, isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let dst = dir.appendingPathComponent(filename)
-        if FileManager.default.fileExists(atPath: dst.path) {
-            try FileManager.default.removeItem(at: dst)
-        }
-        try FileManager.default.moveItem(at: temp, to: dst)
-        progress(1)
+        try commitDownload(temp, to: dst)
+        progress(1, 1)
         selected.insert(name)
         persist()
         refresh()
+    }
+
+    private func verifyDownload(_ file: URL, sha256: String) async throws {
+        let job = Task.detached { try DriverDownload.verify(fileAt: file.path, matches: sha256) }
+        try await withTaskCancellationHandler {
+            try await job.value
+        } onCancel: { job.cancel() }
+    }
+
+    private func commitDownload(_ temp: URL, to destination: URL) throws {
+        let staging = destination.deletingLastPathComponent().appendingPathComponent(".download-" + UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: staging) }
+        try FileManager.default.copyItem(at: temp, to: staging)
+        try Task.checkCancellation()
+        if FileManager.default.fileExists(atPath: destination.path) {
+            _ = try FileManager.default.replaceItemAt(destination, withItemAt: staging)
+        } else { try FileManager.default.moveItem(at: staging, to: destination) }
     }
 
     func delete(profileNamed name: String) {
@@ -174,6 +200,10 @@ final class DriverCopyRunner: ObservableObject {
     @Published var phase = ""
     @Published var errorText: String?
 
+    private var work: Task<[DriverProfile], Error>?
+    @Published var cancellationRequested = false
+    func cancel() { guard isRunning else { return }; cancellationRequested = true; work?.cancel() }
+
     func refresh() {
         volumes = DiskDiscovery.writableUSBVolumes()
         if let selected {
@@ -184,9 +214,9 @@ final class DriverCopyRunner: ObservableObject {
     func start(profileNames: [String], root: String) {
         guard !isRunning, let volume = selected else { return }
         isRunning = true; finished = false; errorText = nil; fraction = 0; phase = "copying drivers"
-        Task {
-            do {
-                try await Task.detached {
+        cancellationRequested = false
+        let job = Task.detached {
+                    try Task.checkCancellation()
                     // Revalidate immediately before copying: never recreate a disappeared mount
                     // as a folder on the Mac, or silently use a different volume at the same path.
                     guard DiskDiscovery.writableUSBVolumes().contains(where: {
@@ -194,17 +224,21 @@ final class DriverCopyRunner: ObservableObject {
                     }) else {
                         throw DriverLibraryError.volumeUnavailable
                     }
-                    try DriverStore.addToExistingVolume(profileNames: profileNames, from: root,
+                    return try DriverStore.addToExistingVolume(profileNames: profileNames, from: root,
                                                          to: volume.mountPath,
                                                          maximumFileSize: volume.fileSystem == "exfat" || volume.fileSystem == "apfs" || volume.fileSystem == "hfs" || volume.fileSystem == "ntfs" ? nil : 4 * 1024 * 1024 * 1024 - 1) { fraction in
                         Task { @MainActor in
                             if self.isRunning { self.fraction = max(self.fraction, fraction) }
                         }
                     }
-                }.value
+        }
+        work = job
+        Task {
+            do {
+                _ = try await job.value
                 fraction = 1
             } catch {
-                errorText = error.localizedDescription
+                errorText = cancellationRequested ? "Task cancelled. The USB may be incomplete. Eject it in Finder before unplugging, and recreate the media before using it." : error.localizedDescription
             }
             finished = true; isRunning = false
         }

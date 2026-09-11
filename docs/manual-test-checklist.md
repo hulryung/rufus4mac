@@ -169,3 +169,20 @@ Historical unchecked entries above describe earlier passes or optional hardware 
 
 - [x] Public `v0.5.0` release and both assets verified; GitHub DMG SHA-256 matches the local notarized artifact.
 - [x] Final installed process and UI show 0.5.0, Korean, no image selected and no disk selected.
+
+
+## 0.6.0 workflow tools verification (2026-09-11)
+
+- [x] Full `swift test`: 231 tests passed. Loopback HTTP integration tests verify byte progress, active cancellation, two transient retries and no retry for HTTP 404.
+- [x] Cancellation during driver copying removes staging files and preserves existing USB contents.
+- [x] Preset and history JSON round trips, corrupt-file preservation, unfinished/failure outcomes and numeric release comparison are covered by tests.
+- [x] Installed app shows 0.6.0 with one main window. Developer ID signature and Gatekeeper checks pass.
+- [x] Final DMG notarization accepted: `45b4baf0-ccb6-4ab7-9827-1e12c19ca074`; ticket stapled and validated.
+- [x] An owned 64 MiB test image appeared automatically after attachment. Detaching the selected image automatically cleared the selection and disabled starting. Physical USB disks were not written or ejected.
+- [x] Saved QA preset, relaunched, applied it, and deleted only that fixture through the UI.
+- [x] Formatted the owned image attached read-only to exercise immediate failure. The final failure was saved to history despite finishing in the same second. Relaunched and inspected that history in Tools. See `docs/qa/history-failure-0.6.0.json`.
+- [x] Cleared only the QA history through the confirmation UI; detached the owned image.
+- [x] Live GitHub update check returned the expected up-to-date result.
+- [x] Captured and visually inspected English main, Tools and history screens; README uses English images.
+- [ ] Repeat raw writing / Windows creation cancellation on disposable physical USB hardware, especially while authentication, formatting or WIM splitting is in progress. These waits intentionally finish their current step.
+- [ ] End-to-end Windows installation with the new build has not been repeated.

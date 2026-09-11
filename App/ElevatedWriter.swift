@@ -14,6 +14,9 @@ final class ElevatedWriter: NSObject, ObservableObject {
     @Published var isRunning: Bool = false
     @Published var errorText: String?
 
+    private var work: Task<Void, Never>?
+    @Published var cancellationRequested = false
+    func cancel() { guard isRunning else { return }; cancellationRequested = true; work?.cancel() }
     private let chunkSize = 4 * 1024 * 1024
     private let authopen = "/usr/libexec/authopen"
 
@@ -21,8 +24,10 @@ final class ElevatedWriter: NSObject, ObservableObject {
         phase = "preparing"; fraction = 0; finished = false; isRunning = true; errorText = nil
         let total = ((try? FileManager.default.attributesOfItem(atPath: imagePath))?[.size]
                      as? NSNumber)?.uint64Value ?? 0
-        Task.detached { [weak self] in
-            await self?.run(imagePath: imagePath, bsdName: bsdName,
+        cancellationRequested = false
+        work = Task.detached { [weak self] in
+            guard let self else { return }
+            await self.run(imagePath: imagePath, bsdName: bsdName,
                             expectedBase64: sha256Base64, total: total, verify: verify)
         }
     }
@@ -42,6 +47,7 @@ final class ElevatedWriter: NSObject, ObservableObject {
 
     private nonisolated func run(imagePath: String, bsdName: String,
                                  expectedBase64: String, total: UInt64, verify: Bool) async {
+        if Task.isCancelled { await fail("Task cancelled. The USB may be incomplete. Eject it in Finder before unplugging, and recreate the media before using it."); return }
         let raw = "/dev/r\(bsdName)"
 
         // 1) Unmount the whole disk (removable media unmounts without root).
@@ -49,6 +55,7 @@ final class ElevatedWriter: NSObject, ObservableObject {
             await fail("Could not unmount disk: \(err)"); return
         }
 
+        if Task.isCancelled { await fail("Task cancelled. The USB may be incomplete. Eject it in Finder before unplugging, and recreate the media before using it."); return }
         // 2) Write: stream the (sector-padded) image into `authopen -w <raw>`.
         await set(phase: "writing", fraction: 0)
         let auth = Process()
@@ -66,6 +73,7 @@ final class ElevatedWriter: NSObject, ObservableObject {
         var written: UInt64 = 0
         do {
             while true {
+                try Task.checkCancellation()
                 let chunk = try src.read(upToCount: chunkSize) ?? Data()
                 if chunk.isEmpty { break }
                 try w.write(contentsOf: chunk)
@@ -78,7 +86,7 @@ final class ElevatedWriter: NSObject, ObservableObject {
             try w.close()
         } catch {
             try? w.close(); try? src.close(); auth.waitUntilExit()
-            await fail("Write failed: \(error)"); return
+            await fail(Task.isCancelled ? "Task cancelled. The USB may be incomplete. Eject it in Finder before unplugging, and recreate the media before using it." : "Write failed: \(error)"); return
         }
         try? src.close()
         auth.waitUntilExit()
@@ -89,6 +97,7 @@ final class ElevatedWriter: NSObject, ObservableObject {
             return
         }
 
+        if Task.isCancelled { await fail("Task cancelled. The USB may be incomplete. Eject it in Finder before unplugging, and recreate the media before using it."); return }
         // 3) Verify (optional): read back `total` bytes via `authopen <raw>` and compare SHA-256.
         guard verify, let expected = Data(base64Encoded: expectedBase64) else { await done(); return }
         await set(phase: "verifying", fraction: 0)
@@ -101,6 +110,7 @@ final class ElevatedWriter: NSObject, ObservableObject {
         let rfh = outPipe.fileHandleForReading
         var hasher = SHA256(); var readBytes: UInt64 = 0
         while readBytes < total {
+            if Task.isCancelled { break }
             let want = Int(min(UInt64(chunkSize), total - readBytes))
             let data = (try? rfh.read(upToCount: want)) ?? Data()
             if data.isEmpty { break }
@@ -109,6 +119,7 @@ final class ElevatedWriter: NSObject, ObservableObject {
             await set(fraction: Double(readBytes) / Double(total))
         }
         vr.terminate(); vr.waitUntilExit()
+        if Task.isCancelled { await fail("Task cancelled. The USB may be incomplete. Eject it in Finder before unplugging, and recreate the media before using it."); return }
         if readBytes < total || Data(hasher.finalize()) != expected {
             await fail("Verification failed (data mismatch)."); return
         }

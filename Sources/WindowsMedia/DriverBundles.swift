@@ -80,7 +80,9 @@ public enum DriverStore {
         guard !wanted.isEmpty else { return [] }
 
         for p in wanted {
+            try Task.checkCancellation()
             for f in p.files {
+                try Task.checkCancellation()
                 let path = (((root as NSString).appendingPathComponent(p.name)) as NSString)
                     .appendingPathComponent(f)
                 let size = ((try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? NSNumber)?
@@ -97,10 +99,12 @@ public enum DriverStore {
         progress(0)
         let dest = (usbRoot as NSString).appendingPathComponent(usbFolderName)
         for p in wanted {
+            try Task.checkCancellation()
             let srcDir = (root as NSString).appendingPathComponent(p.name)
             let dstDir = (dest as NSString).appendingPathComponent(p.name)
             try fm.createDirectory(atPath: dstDir, withIntermediateDirectories: true)
             for f in p.files {
+                try Task.checkCancellation()
                 let src = (srcDir as NSString).appendingPathComponent(f)
                 let dst = (dstDir as NSString).appendingPathComponent(f)
                 try fm.createDirectory(atPath: (dst as NSString).deletingLastPathComponent,
@@ -112,6 +116,7 @@ public enum DriverStore {
                         progress(total == 0 ? 1 : Double(done) / Double(total))
                     }
                 } catch {
+                    if error is CancellationError { throw error }
                     throw WimToolError(message: "Could not copy driver \(p.name)/\(f): \(error.localizedDescription)")
                 }
             }
@@ -127,6 +132,7 @@ public enum DriverStore {
         let dest = (usbRoot as NSString).appendingPathComponent(usbFolderName)
         for p in copied {
             for f in p.files {
+                try Task.checkCancellation()
                 let src = (((root as NSString).appendingPathComponent(p.name)) as NSString)
                     .appendingPathComponent(f)
                 let dst = (((dest as NSString).appendingPathComponent(p.name)) as NSString)
@@ -187,6 +193,7 @@ extension DriverStore {
         try verify(profiles: copied, root: root, usbRoot: stage.path)
         try fm.createDirectory(at: destination, withIntermediateDirectories: true)
         for profile in copied {
+            try Task.checkCancellation()
             let staged = stage.appendingPathComponent(usbFolderName).appendingPathComponent(profile.name)
             let target = destination.appendingPathComponent(profile.name)
             // moveItem fails if a destination appeared since preflight; it never replaces it.
