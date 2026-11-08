@@ -10,6 +10,7 @@ a PC that cannot get online yet.
   <img src="docs/screenshots/english-0.6.0.png" alt="rufus4mac 0.6.0: English interface with three guided USB tasks" width="600">
 </p>
 
+[Website](https://hulryung.github.io/rufus4mac/) ·
 [Download the latest release](https://github.com/hulryung/rufus4mac/releases/latest) ·
 [Release notes](https://github.com/hulryung/rufus4mac/releases/tag/v0.6.0) ·
 [Build from source](docs/ARCHITECTURE.md#build--test)
